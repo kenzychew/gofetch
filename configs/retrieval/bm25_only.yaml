@@ -1,0 +1,10 @@
+dense_top_k: 0
+sparse_top_k: 20
+fusion_top_k: 10
+rerank_top_k: 5
+rrf_k: 60
+reranker_model: "cross-encoder/ms-marco-MiniLM-L-6-v2"
+use_graph: false
+use_hyde: false
+use_decomposition: false
+confidence_threshold: 0.3
