@@ -1,0 +1,65 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environments
+.venv/
+env/
+venv/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Environment
+.env
+
+# ML artifacts
+wandb/
+mlruns/
+*.pkl
+*.pickle
+
+# Data artifacts
+data/*.pdf
+data/*.txt
+!data/.gitkeep
+
+# Qdrant storage
+qdrant_storage/
+
+# Graph persistence
+graph_data/
+
+# BM25 index
+bm25_index/
+
+# Logs
+logs/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Coverage
+htmlcov/
+.coverage
+.coverage.*
+
+# mypy
+.mypy_cache/
+
+# ruff
+.ruff_cache/
+
+# Notebook outputs
+*.ipynb_checkpoints/

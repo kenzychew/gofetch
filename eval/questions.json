@@ -1,0 +1,122 @@
+[
+    {
+        "question": "What is the computational complexity of self-attention?",
+        "expected_source": "attention-is-all-you-need.pdf",
+        "expected_keywords": ["quadratic", "O(n^2)", "sequence length"],
+        "category": "factual"
+    },
+    {
+        "question": "How does the Transformer model use positional encoding?",
+        "expected_source": "attention-is-all-you-need.pdf",
+        "expected_keywords": ["sinusoidal", "position", "sine", "cosine"],
+        "category": "factual"
+    },
+    {
+        "question": "What is multi-head attention and why is it beneficial?",
+        "expected_source": "attention-is-all-you-need.pdf",
+        "expected_keywords": ["parallel", "heads", "subspaces", "jointly attend"],
+        "category": "factual"
+    },
+    {
+        "question": "How does scaled dot-product attention work?",
+        "expected_source": "attention-is-all-you-need.pdf",
+        "expected_keywords": ["query", "key", "value", "softmax", "scaling"],
+        "category": "factual"
+    },
+    {
+        "question": "What is Retrieval-Augmented Generation?",
+        "expected_source": "rag-paper.pdf",
+        "expected_keywords": ["retrieval", "generation", "knowledge", "non-parametric"],
+        "category": "factual"
+    },
+    {
+        "question": "How does RAG combine retrieval with generation?",
+        "expected_source": "rag-paper.pdf",
+        "expected_keywords": ["retriever", "generator", "marginalize", "documents"],
+        "category": "factual"
+    },
+    {
+        "question": "What retriever does the RAG paper use?",
+        "expected_source": "rag-paper.pdf",
+        "expected_keywords": ["DPR", "dense passage retrieval", "BERT"],
+        "category": "factual"
+    },
+    {
+        "question": "How does BERT's masked language modeling work?",
+        "expected_source": "bert-paper.pdf",
+        "expected_keywords": ["mask", "token", "predict", "bidirectional"],
+        "category": "factual"
+    },
+    {
+        "question": "What is the difference between BERT's pre-training objectives?",
+        "expected_source": "bert-paper.pdf",
+        "expected_keywords": ["MLM", "NSP", "masked", "next sentence"],
+        "category": "factual"
+    },
+    {
+        "question": "Compare the attention mechanism in Transformers with the retrieval approach in RAG",
+        "expected_source": "multiple",
+        "expected_keywords": ["attention", "retrieval", "Transformer", "RAG"],
+        "category": "comparison"
+    },
+    {
+        "question": "How do positional encodings relate to sequence order in both Transformers and BERT?",
+        "expected_source": "multiple",
+        "expected_keywords": ["position", "encoding", "sequence", "order"],
+        "category": "comparison"
+    },
+    {
+        "question": "What are alternatives to self-attention for sequence modeling?",
+        "expected_source": "attention-is-all-you-need.pdf",
+        "expected_keywords": ["recurrent", "convolutional", "attention"],
+        "category": "conceptual"
+    },
+    {
+        "question": "What is the training cost of GPT-4?",
+        "expected_source": "none",
+        "expected_keywords": [],
+        "category": "unanswerable"
+    },
+    {
+        "question": "What programming language was Transformer implemented in?",
+        "expected_source": "none",
+        "expected_keywords": [],
+        "category": "unanswerable"
+    },
+    {
+        "question": "What are the key differences between RAG-Sequence and RAG-Token models?",
+        "expected_source": "rag-paper.pdf",
+        "expected_keywords": ["sequence", "token", "marginalize", "per-token"],
+        "category": "factual"
+    },
+    {
+        "question": "How does the feed-forward network in Transformers process attention outputs?",
+        "expected_source": "attention-is-all-you-need.pdf",
+        "expected_keywords": ["feed-forward", "ReLU", "linear", "dimensions"],
+        "category": "factual"
+    },
+    {
+        "question": "What datasets were used to evaluate the original Transformer model?",
+        "expected_source": "attention-is-all-you-need.pdf",
+        "expected_keywords": ["WMT", "translation", "English", "German", "French"],
+        "category": "factual"
+    },
+    {
+        "question": "How does BERT handle fine-tuning for downstream tasks?",
+        "expected_source": "bert-paper.pdf",
+        "expected_keywords": ["fine-tune", "task-specific", "classification", "output layer"],
+        "category": "factual"
+    },
+    {
+        "question": "What is the relationship between attention mechanisms and memory networks?",
+        "expected_source": "multiple",
+        "expected_keywords": ["memory", "attention", "access", "read"],
+        "category": "conceptual"
+    },
+    {
+        "question": "How many parameters does the Transformer base model have?",
+        "expected_source": "attention-is-all-you-need.pdf",
+        "expected_keywords": ["65", "million", "parameters", "base"],
+        "category": "factual"
+    }
+]

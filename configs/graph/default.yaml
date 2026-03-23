@@ -1,0 +1,7 @@
+extraction_model: "gpt-4o-mini"
+extraction_batch_size: 3
+max_entities_per_chunk: 10
+max_relationships_per_chunk: 15
+entity_similarity_threshold: 0.85
+traversal_hops: 1
+graph_top_k: 20
