@@ -6,6 +6,7 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 
 from src.api.main import app
+from src.config import AppConfig
 
 
 @pytest.fixture
@@ -28,8 +29,6 @@ async def test_health_endpoint_structure() -> None:
         patch("src.api.main.get_config") as mock_config,
         patch("src.api.main.get_sparse_retriever") as mock_sparse,
     ):
-        from src.config import AppConfig
-
         mock_config.return_value = AppConfig()
         mock_sparse.return_value = None
 

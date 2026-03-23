@@ -9,7 +9,9 @@ from pathlib import Path
 
 from anthropic import AsyncAnthropic
 from fastapi import Depends, FastAPI, HTTPException, Query, UploadFile
+from omegaconf import OmegaConf
 from pydantic import BaseModel
+from qdrant_client import AsyncQdrantClient
 from sse_starlette.sse import EventSourceResponse
 
 from src.api.dependencies import (
@@ -27,7 +29,14 @@ from src.api.dependencies import (
     set_graph_retriever,
     set_sparse_retriever,
 )
-from src.config import AppConfig, PromptConfig
+from src.config import (
+    AppConfig,
+    GenerationConfig,
+    GraphConfig,
+    IngestionConfig,
+    PromptConfig,
+    RetrievalConfig,
+)
 from src.exceptions import GoFetchError
 from src.generation.stream import stream_completion
 from src.graph.builder import KnowledgeGraph
@@ -49,44 +58,58 @@ from src.schemas import CitedSource, RetrievalResult
 logger = get_logger(__name__)
 
 
+def _load_yaml_config(path: Path) -> dict[str, object]:
+    """Load and validate a YAML config file via OmegaConf.
+
+    Args:
+        path: Path to the YAML file.
+
+    Returns:
+        Parsed config as a plain dict, or empty dict if file is missing/malformed.
+    """
+    if not path.exists():
+        logger.warning("Config file not found, using defaults", path=str(path))
+        return {}
+
+    raw = OmegaConf.load(path)
+    cfg = OmegaConf.to_container(raw, resolve=True)
+    if not isinstance(cfg, dict):
+        logger.warning("Malformed config file, using defaults", path=str(path))
+        return {}
+    return cfg
+
+
+def _extract_sub_config(cfg: dict[str, object], key: str) -> dict[str, object]:
+    """Extract a sub-config dict, returning empty dict if missing or wrong type.
+
+    Args:
+        cfg: Parent config dictionary.
+        key: Key to extract.
+
+    Returns:
+        Sub-config dict or empty dict.
+    """
+    value = cfg.get(key)
+    if isinstance(value, dict):
+        return value
+    return {}
+
+
 def _load_config() -> tuple[AppConfig, PromptConfig]:
     """Load application config from Hydra YAML files.
 
-    Falls back to defaults if Hydra config files are not available.
+    Falls back to defaults if config files are not found.
 
     Returns:
         Tuple of (AppConfig, PromptConfig).
     """
-    try:
-        from omegaconf import OmegaConf
-
-        config_path = Path("configs/config.yaml")
-        if config_path.exists():
-            raw = OmegaConf.load(config_path)
-            cfg = OmegaConf.to_container(raw, resolve=True)
-            if not isinstance(cfg, dict):
-                logger.warning("Malformed config file, using defaults", path=str(config_path))
-                cfg = {}
-        else:
-            logger.warning("Config file not found, using defaults", path=str(config_path))
-            cfg = {}
-    except ImportError:
-        logger.warning("OmegaConf not installed, using default configuration")
-        cfg = {}
-
-    # Load sub-configs
-    ingestion_cfg = cfg.get("ingestion", {}) if isinstance(cfg.get("ingestion"), dict) else {}
-    retrieval_cfg = cfg.get("retrieval", {}) if isinstance(cfg.get("retrieval"), dict) else {}
-    generation_cfg = cfg.get("generation", {}) if isinstance(cfg.get("generation"), dict) else {}
-    graph_cfg = cfg.get("graph", {}) if isinstance(cfg.get("graph"), dict) else {}
-
-    from src.config import GenerationConfig, GraphConfig, IngestionConfig, RetrievalConfig
+    cfg = _load_yaml_config(Path("configs/config.yaml"))
 
     app_config = AppConfig(
-        ingestion=IngestionConfig(**ingestion_cfg),
-        retrieval=RetrievalConfig(**retrieval_cfg),
-        generation=GenerationConfig(**generation_cfg),
-        graph=GraphConfig(**graph_cfg),
+        ingestion=IngestionConfig(**_extract_sub_config(cfg, "ingestion")),
+        retrieval=RetrievalConfig(**_extract_sub_config(cfg, "retrieval")),
+        generation=GenerationConfig(**_extract_sub_config(cfg, "generation")),
+        graph=GraphConfig(**_extract_sub_config(cfg, "graph")),
         qdrant_url=str(cfg.get("qdrant_url", "http://localhost:6333")),
         collection_name=str(cfg.get("collection_name", "gofetch")),
         bm25_index_path=str(cfg.get("bm25_index_path", "bm25_index/bm25.pkl")),
@@ -95,25 +118,16 @@ def _load_config() -> tuple[AppConfig, PromptConfig]:
         log_level=str(cfg.get("log_level", "INFO")),
     )
 
-    # Load prompt config from YAML
     prompt_config = PromptConfig()
-    try:
-        from omegaconf import OmegaConf
-
-        prompts_path = Path("configs/prompts/citation.yaml")
-        if prompts_path.exists():
-            raw_prompts = OmegaConf.load(prompts_path)
-            prompts_dict = OmegaConf.to_container(raw_prompts, resolve=True)
-            if isinstance(prompts_dict, dict):
-                prompt_config = PromptConfig(
-                    system_prompt=str(prompts_dict.get("system_prompt", "")),
-                    context_template=str(prompts_dict.get("context_template", "")),
-                    chunk_template=str(prompts_dict.get("chunk_template", "")),
-                    few_shot_examples=prompts_dict.get("few_shot_examples", []),
-                    low_confidence_warning=str(prompts_dict.get("low_confidence_warning", "")),
-                )
-    except ImportError:
-        pass
+    prompts_dict = _load_yaml_config(Path("configs/prompts/citation.yaml"))
+    if prompts_dict:
+        prompt_config = PromptConfig(
+            system_prompt=str(prompts_dict.get("system_prompt", "")),
+            context_template=str(prompts_dict.get("context_template", "")),
+            chunk_template=str(prompts_dict.get("chunk_template", "")),
+            few_shot_examples=prompts_dict.get("few_shot_examples", []),
+            low_confidence_warning=str(prompts_dict.get("low_confidence_warning", "")),
+        )
 
     return app_config, prompt_config
 
@@ -508,8 +522,6 @@ async def health_check() -> HealthResponse:
 
     qdrant_ok = False
     try:
-        from qdrant_client import AsyncQdrantClient
-
         client = AsyncQdrantClient(url=config.qdrant_url)
         await client.get_collections()
         qdrant_ok = True

@@ -1,5 +1,6 @@
 """FastAPI dependency injection factories for pipeline components."""
 
+import os
 import uuid
 from collections.abc import AsyncIterator
 from pathlib import Path
@@ -20,48 +21,93 @@ from src.retrieval.sparse import SparseRetriever
 
 logger = get_logger(__name__)
 
-# Module-level singletons initialized at startup
-_config: AppConfig | None = None
-_embedder: Embedder | None = None
-_dense_retriever: DenseRetriever | None = None
-_sparse_retriever: SparseRetriever | None = None
-_graph_retriever: GraphRetriever | None = None
-_reranker: CrossEncoderReranker | None = None
-_anthropic_client: AsyncAnthropic | None = None
-_prompt_builder: PromptBuilder | None = None
-_vector_indexer: VectorIndexer | None = None
+
+class DependencyContainer:
+    """Singleton container for all pipeline components.
+
+    Holds references to initialized components and provides typed
+    accessors. Eliminates the need for module-level global variables.
+
+    Attributes:
+        config: Application configuration.
+        embedder: Sentence-transformer embedder.
+        dense_retriever: Qdrant dense vector retriever.
+        sparse_retriever: BM25 sparse retriever (None until ingestion).
+        graph_retriever: Graph retriever (None until ingestion with graph enabled).
+        reranker: Cross-encoder reranker.
+        anthropic_client: Async Anthropic API client.
+        prompt_builder: Citation-aware prompt builder.
+        vector_indexer: Qdrant vector indexer.
+    """
+
+    def __init__(self) -> None:
+        """Initialize the container with all fields set to None."""
+        self.config: AppConfig | None = None
+        self.embedder: Embedder | None = None
+        self.dense_retriever: DenseRetriever | None = None
+        self.sparse_retriever: SparseRetriever | None = None
+        self.graph_retriever: GraphRetriever | None = None
+        self.reranker: CrossEncoderReranker | None = None
+        self.anthropic_client: AsyncAnthropic | None = None
+        self.prompt_builder: PromptBuilder | None = None
+        self.vector_indexer: VectorIndexer | None = None
+
+
+_container = DependencyContainer()
+
+
+def _load_env(env_path: str = ".env") -> None:
+    """Load environment variables from a .env file if it exists.
+
+    Reads key=value pairs from the file and sets them in os.environ.
+    Skips blank lines, comments, and already-set variables.
+
+    Args:
+        env_path: Path to the .env file. Defaults to ".env" in the working directory.
+    """
+    path = Path(env_path)
+    if not path.exists():
+        return
+
+    for line in path.read_text().splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key = key.strip()
+        value = value.strip()
+        if key and key not in os.environ:
+            os.environ[key] = value
 
 
 def init_dependencies(config: AppConfig, prompt_config: PromptConfig) -> None:
     """Initialize all pipeline components as singletons.
 
-    Called once at application startup. Components are loaded into
-    module-level variables and served via FastAPI Depends().
+    Called once at application startup. Components are stored in the
+    module-level container and served via FastAPI Depends().
 
     Args:
         config: Application configuration.
         prompt_config: Prompt template configuration (loaded from Hydra YAML).
     """
-    global _config, _embedder, _dense_retriever, _sparse_retriever  # noqa: PLW0603
-    global _graph_retriever  # noqa: PLW0603
-    global _reranker, _anthropic_client, _prompt_builder, _vector_indexer  # noqa: PLW0603
+    _load_env()
 
-    _config = config
-    _embedder = Embedder(config.ingestion)
-    _dense_retriever = DenseRetriever(config)
-    _reranker = CrossEncoderReranker(config.retrieval)
-    _anthropic_client = AsyncAnthropic()
-    _vector_indexer = VectorIndexer(config)
+    _container.config = config
+    _container.embedder = Embedder(config.ingestion)
+    _container.dense_retriever = DenseRetriever(config)
+    _container.reranker = CrossEncoderReranker(config.retrieval)
+    _container.anthropic_client = AsyncAnthropic()
+    _container.vector_indexer = VectorIndexer(config)
 
     config.prompts = prompt_config
-    _prompt_builder = PromptBuilder(prompt_config, config.generation)
+    _container.prompt_builder = PromptBuilder(prompt_config, config.generation)
 
     # Load BM25 index if it exists
     bm25_path = Path(config.bm25_index_path)
     if bm25_path.exists():
         bm25_indexer = BM25Indexer(config.bm25_index_path)
         bm25, chunks = bm25_indexer.load_index()
-        _sparse_retriever = SparseRetriever(bm25, chunks)
+        _container.sparse_retriever = SparseRetriever(bm25, chunks)
         logger.info("Loaded existing BM25 index")
 
         # Load graph if it exists and graph retrieval is enabled
@@ -69,7 +115,7 @@ def init_dependencies(config: AppConfig, prompt_config: PromptConfig) -> None:
         if graph_path.exists() and config.retrieval.use_graph:
             graph = KnowledgeGraph(config.graph)
             graph.load(config.graph_data_path)
-            _graph_retriever = GraphRetriever(graph, config.graph, chunks)
+            _container.graph_retriever = GraphRetriever(graph, config.graph, chunks)
             logger.info(
                 "Loaded knowledge graph",
                 nodes=graph.num_nodes,
@@ -89,10 +135,10 @@ def get_config() -> AppConfig:
     Returns:
         The application configuration instance.
     """
-    if _config is None:
+    if _container.config is None:
         msg = "Config not initialized"
         raise RuntimeError(msg)
-    return _config
+    return _container.config
 
 
 def get_embedder() -> Embedder:
@@ -101,10 +147,10 @@ def get_embedder() -> Embedder:
     Returns:
         The embedder singleton.
     """
-    if _embedder is None:
+    if _container.embedder is None:
         msg = "Embedder not initialized"
         raise RuntimeError(msg)
-    return _embedder
+    return _container.embedder
 
 
 def get_dense_retriever() -> DenseRetriever:
@@ -113,10 +159,10 @@ def get_dense_retriever() -> DenseRetriever:
     Returns:
         The dense retriever singleton.
     """
-    if _dense_retriever is None:
+    if _container.dense_retriever is None:
         msg = "Dense retriever not initialized"
         raise RuntimeError(msg)
-    return _dense_retriever
+    return _container.dense_retriever
 
 
 def get_sparse_retriever() -> SparseRetriever | None:
@@ -125,7 +171,7 @@ def get_sparse_retriever() -> SparseRetriever | None:
     Returns:
         The sparse retriever singleton or None.
     """
-    return _sparse_retriever
+    return _container.sparse_retriever
 
 
 def set_sparse_retriever(retriever: SparseRetriever) -> None:
@@ -134,8 +180,7 @@ def set_sparse_retriever(retriever: SparseRetriever) -> None:
     Args:
         retriever: The newly built sparse retriever.
     """
-    global _sparse_retriever  # noqa: PLW0603
-    _sparse_retriever = retriever
+    _container.sparse_retriever = retriever
 
 
 def get_graph_retriever() -> GraphRetriever | None:
@@ -144,7 +189,7 @@ def get_graph_retriever() -> GraphRetriever | None:
     Returns:
         The graph retriever singleton or None.
     """
-    return _graph_retriever
+    return _container.graph_retriever
 
 
 def set_graph_retriever(retriever: GraphRetriever) -> None:
@@ -153,8 +198,7 @@ def set_graph_retriever(retriever: GraphRetriever) -> None:
     Args:
         retriever: The newly built graph retriever.
     """
-    global _graph_retriever  # noqa: PLW0603
-    _graph_retriever = retriever
+    _container.graph_retriever = retriever
 
 
 def get_reranker() -> CrossEncoderReranker:
@@ -163,10 +207,10 @@ def get_reranker() -> CrossEncoderReranker:
     Returns:
         The cross-encoder reranker singleton.
     """
-    if _reranker is None:
+    if _container.reranker is None:
         msg = "Reranker not initialized"
         raise RuntimeError(msg)
-    return _reranker
+    return _container.reranker
 
 
 def get_anthropic_client() -> AsyncAnthropic:
@@ -175,10 +219,10 @@ def get_anthropic_client() -> AsyncAnthropic:
     Returns:
         The Anthropic client singleton.
     """
-    if _anthropic_client is None:
+    if _container.anthropic_client is None:
         msg = "Anthropic client not initialized"
         raise RuntimeError(msg)
-    return _anthropic_client
+    return _container.anthropic_client
 
 
 def get_prompt_builder() -> PromptBuilder:
@@ -187,10 +231,10 @@ def get_prompt_builder() -> PromptBuilder:
     Returns:
         The prompt builder singleton.
     """
-    if _prompt_builder is None:
+    if _container.prompt_builder is None:
         msg = "Prompt builder not initialized"
         raise RuntimeError(msg)
-    return _prompt_builder
+    return _container.prompt_builder
 
 
 def get_vector_indexer() -> VectorIndexer:
@@ -199,10 +243,10 @@ def get_vector_indexer() -> VectorIndexer:
     Returns:
         The vector indexer singleton.
     """
-    if _vector_indexer is None:
+    if _container.vector_indexer is None:
         msg = "Vector indexer not initialized"
         raise RuntimeError(msg)
-    return _vector_indexer
+    return _container.vector_indexer
 
 
 async def get_request_id() -> AsyncIterator[str]:
