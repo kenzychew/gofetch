@@ -1,6 +1,11 @@
 """Pydantic structured configs validated by Hydra at startup."""
 
+import re
 from dataclasses import dataclass, field
+
+from src.exceptions import ConfigError
+
+_VALID_SQL_IDENTIFIER = re.compile(r"^[a-z_][a-z0-9_]{0,62}$")
 
 
 @dataclass
@@ -120,8 +125,8 @@ class AppConfig:
         generation: Generation pipeline config.
         graph: Knowledge graph config.
         prompts: Prompt template config.
-        qdrant_url: URL of the Qdrant instance.
-        collection_name: Name of the Qdrant collection.
+        database_url: PostgreSQL connection string.
+        table_name: Name of the chunks table in PostgreSQL.
         bm25_index_path: File path for pickled BM25 index.
         graph_data_path: File path for serialized graph data.
         data_dir: Directory containing source documents.
@@ -133,9 +138,20 @@ class AppConfig:
     generation: GenerationConfig = field(default_factory=GenerationConfig)
     graph: GraphConfig = field(default_factory=GraphConfig)
     prompts: PromptConfig = field(default_factory=PromptConfig)
-    qdrant_url: str = "http://localhost:6333"
-    collection_name: str = "gofetch"
+    database_url: str = "postgresql://gofetch:gofetch@localhost:5432/gofetch"
+    table_name: str = "chunks"
     bm25_index_path: str = "bm25_index/bm25.pkl"
     graph_data_path: str = "graph_data/graph.json"
     data_dir: str = "data"
     log_level: str = "INFO"
+
+    def __post_init__(self) -> None:
+        """Validate config values that are used in SQL identifiers.
+
+        Raises:
+            ConfigError: If table_name is not a valid SQL identifier.
+        """
+        if not _VALID_SQL_IDENTIFIER.match(self.table_name):
+            raise ConfigError(
+                f"Invalid table_name: '{self.table_name}'. Must match [a-z_][a-z0-9_]{{{{0,62}}}}."
+            )
