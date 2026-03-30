@@ -11,15 +11,16 @@ from anthropic import AsyncAnthropic
 from fastapi import Depends, FastAPI, HTTPException, Query, UploadFile
 from omegaconf import OmegaConf
 from pydantic import BaseModel
-from qdrant_client import AsyncQdrantClient
 from sse_starlette.sse import EventSourceResponse
 
 from src.api.dependencies import (
+    close_pool,
     get_anthropic_client,
     get_config,
     get_dense_retriever,
     get_embedder,
     get_graph_retriever,
+    get_pool,
     get_prompt_builder,
     get_request_id,
     get_reranker,
@@ -53,7 +54,7 @@ from src.retrieval.fusion import reciprocal_rank_fusion
 from src.retrieval.hyde import generate_hypothetical_document
 from src.retrieval.reranker import CrossEncoderReranker
 from src.retrieval.sparse import SparseRetriever
-from src.schemas import CitedSource, RetrievalResult
+from src.schemas import Chunk, CitedSource, RetrievalResult
 
 logger = get_logger(__name__)
 
@@ -95,39 +96,86 @@ def _extract_sub_config(cfg: dict[str, object], key: str) -> dict[str, object]:
     return {}
 
 
+def _resolve_defaults(cfg: dict[str, object]) -> dict[str, object]:
+    """Resolve Hydra-style defaults list by loading referenced sub-config files.
+
+    OmegaConf.load() does not resolve Hydra defaults -- it treats the
+    defaults list as plain YAML. This function manually loads each
+    referenced sub-config and merges it into the parent config.
+
+    Args:
+        cfg: The raw config dict (may contain a 'defaults' key).
+
+    Returns:
+        Merged config with sub-configs loaded from their YAML files.
+    """
+    defaults = cfg.pop("defaults", None)
+    if not isinstance(defaults, list):
+        return cfg
+
+    configs_dir = Path("configs")
+    for entry in defaults:
+        if isinstance(entry, str) and entry == "_self_":
+            continue
+        if isinstance(entry, dict):
+            for group, variant in entry.items():
+                sub_path = configs_dir / group / f"{variant}.yaml"
+                sub_cfg = _load_yaml_config(sub_path)
+                if sub_cfg:
+                    cfg[group] = sub_cfg
+
+    return cfg
+
+
 def _load_config() -> tuple[AppConfig, PromptConfig]:
     """Load application config from Hydra YAML files.
 
-    Falls back to defaults if config files are not found.
+    Resolves Hydra defaults to load sub-config files for each
+    pipeline component. Falls back to dataclass defaults if
+    config files are not found.
 
     Returns:
         Tuple of (AppConfig, PromptConfig).
     """
     cfg = _load_yaml_config(Path("configs/config.yaml"))
+    cfg = _resolve_defaults(cfg)
+
+    # Only pass YAML values that are present; AppConfig dataclass
+    # defaults are the single source of truth for fallback values
+    top_level_keys = [
+        "database_url",
+        "table_name",
+        "bm25_index_path",
+        "graph_data_path",
+        "data_dir",
+        "log_level",
+    ]
+    top_level_overrides = {k: str(cfg[k]) for k in top_level_keys if k in cfg}
 
     app_config = AppConfig(
         ingestion=IngestionConfig(**_extract_sub_config(cfg, "ingestion")),
         retrieval=RetrievalConfig(**_extract_sub_config(cfg, "retrieval")),
         generation=GenerationConfig(**_extract_sub_config(cfg, "generation")),
         graph=GraphConfig(**_extract_sub_config(cfg, "graph")),
-        qdrant_url=str(cfg.get("qdrant_url", "http://localhost:6333")),
-        collection_name=str(cfg.get("collection_name", "gofetch")),
-        bm25_index_path=str(cfg.get("bm25_index_path", "bm25_index/bm25.pkl")),
-        graph_data_path=str(cfg.get("graph_data_path", "graph_data/graph.json")),
-        data_dir=str(cfg.get("data_dir", "data")),
-        log_level=str(cfg.get("log_level", "INFO")),
+        **top_level_overrides,
     )
 
-    prompt_config = PromptConfig()
-    prompts_dict = _load_yaml_config(Path("configs/prompts/citation.yaml"))
-    if prompts_dict:
-        prompt_config = PromptConfig(
-            system_prompt=str(prompts_dict.get("system_prompt", "")),
-            context_template=str(prompts_dict.get("context_template", "")),
-            chunk_template=str(prompts_dict.get("chunk_template", "")),
-            few_shot_examples=prompts_dict.get("few_shot_examples", []),
-            low_confidence_warning=str(prompts_dict.get("low_confidence_warning", "")),
-        )
+    # Load prompt config from the resolved sub-config, falling back to file
+    prompts_dict = _extract_sub_config(cfg, "prompts")
+    if not prompts_dict:
+        prompts_dict = _load_yaml_config(Path("configs/prompts/citation.yaml"))
+
+    if not prompts_dict:
+        return app_config, PromptConfig()
+
+    few_shot = prompts_dict.get("few_shot_examples", [])
+    prompt_config = PromptConfig(
+        system_prompt=str(prompts_dict.get("system_prompt", "")),
+        context_template=str(prompts_dict.get("context_template", "")),
+        chunk_template=str(prompts_dict.get("chunk_template", "")),
+        few_shot_examples=few_shot if isinstance(few_shot, list) else [],
+        low_confidence_warning=str(prompts_dict.get("low_confidence_warning", "")),
+    )
 
     return app_config, prompt_config
 
@@ -142,19 +190,18 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     config, prompt_config = _load_config()
     setup_logging(level=config.log_level)
     logger.info("Starting GoFetch RAG system")
-    init_dependencies(config, prompt_config)
+    await init_dependencies(config, prompt_config)
 
-    # Ensure Qdrant collection exists
-    indexer = get_vector_indexer()
-    await indexer.ensure_collection()
+    try:
+        # Ensure pgvector table and indexes exist
+        indexer = get_vector_indexer()
+        await indexer.ensure_table()
 
-    yield
-
-    # Cleanup
-    dense = get_dense_retriever()
-    await dense.close()
-    await indexer.close()
-    logger.info("GoFetch shutdown complete")
+        yield
+    finally:
+        # Always close pool, even if ensure_table fails
+        await close_pool()
+        logger.info("GoFetch shutdown complete")
 
 
 app = FastAPI(
@@ -187,16 +234,63 @@ class HealthResponse(BaseModel):
 
     Attributes:
         status: Overall system status.
-        qdrant: Whether Qdrant is reachable.
+        postgres: Whether PostgreSQL is reachable.
         bm25_loaded: Whether the BM25 index is loaded.
     """
 
     status: str
-    qdrant: bool
+    postgres: bool
     bm25_loaded: bool
 
 
 # --- Endpoints ---
+
+
+async def _save_uploaded_files(files: list[UploadFile], data_dir: Path) -> None:
+    """Save uploaded files to the data directory.
+
+    Args:
+        files: List of uploaded files.
+        data_dir: Target directory for saving files.
+    """
+    data_dir.mkdir(parents=True, exist_ok=True)
+    for file in files:
+        if file.filename:
+            file_path = data_dir / file.filename
+            content = await file.read()
+            file_path.write_bytes(content)
+            logger.info("Saved uploaded file", filename=file.filename)
+
+
+async def _build_knowledge_graph(
+    chunks: list[Chunk],
+    config: AppConfig,
+) -> None:
+    """Build and persist the knowledge graph from ingested chunks.
+
+    Args:
+        chunks: All ingested chunks with embeddings.
+        config: Application configuration.
+    """
+    anthropic_client = get_anthropic_client()
+    graph = KnowledgeGraph(config.graph)
+    batch_size = config.graph.extraction_batch_size
+
+    for i in range(0, len(chunks), batch_size):
+        batch = chunks[i : i + batch_size]
+        entities, relationships = await extract_entities_and_relationships(
+            batch, anthropic_client, config.graph
+        )
+        graph.add_entities(entities)
+        graph.add_relationships(relationships)
+
+    graph.save(config.graph_data_path)
+    set_graph_retriever(GraphRetriever(graph, config.graph, chunks))
+    logger.info(
+        "Built knowledge graph",
+        nodes=graph.num_nodes,
+        edges=graph.num_edges,
+    )
 
 
 @app.post("/ingest", response_model=IngestResponse)
@@ -207,7 +301,7 @@ async def ingest_documents(
     """Upload and index documents into the RAG pipeline.
 
     Accepts file uploads or ingests all documents from the data/ directory.
-    Runs chunking, embedding, Qdrant upsert, and BM25 index building.
+    Runs chunking, embedding, pgvector upsert, and BM25 index building.
 
     Args:
         files: Optional list of uploaded files.
@@ -225,18 +319,9 @@ async def ingest_documents(
 
     try:
         data_dir = Path(config.data_dir)
-
-        # If files are uploaded, save them to data dir
         if files:
-            data_dir.mkdir(parents=True, exist_ok=True)
-            for file in files:
-                if file.filename:
-                    file_path = data_dir / file.filename
-                    content = await file.read()
-                    file_path.write_bytes(content)
-                    logger.info("Saved uploaded file", filename=file.filename)
+            await _save_uploaded_files(files, data_dir)
 
-        # Load all documents from data directory
         documents = load_documents(data_dir)
         if not documents:
             raise HTTPException(status_code=400, detail="No documents found to ingest")
@@ -245,43 +330,21 @@ async def ingest_documents(
         chunker = RecursiveChunker(config.ingestion)
         all_chunks = []
         for doc in documents:
-            chunks = chunker.chunk(doc)
-            all_chunks.extend(chunks)
+            all_chunks.extend(chunker.chunk(doc))
 
         # Embed chunks (sync, but fast for small-medium corpora)
         all_chunks = await asyncio.to_thread(embedder.embed_chunks, all_chunks)
 
-        # Upsert to Qdrant
+        # Upsert to PostgreSQL
         await indexer.upsert_chunks(all_chunks)
 
-        # Build BM25 index
+        # Build BM25 index and update sparse retriever
         bm25_indexer = BM25Indexer(config.bm25_index_path)
         bm25 = await asyncio.to_thread(bm25_indexer.build_index, all_chunks)
-
-        # Update sparse retriever singleton
         set_sparse_retriever(SparseRetriever(bm25, all_chunks))
 
-        # Build knowledge graph if enabled
         if config.retrieval.use_graph:
-            anthropic_client = get_anthropic_client()
-            graph = KnowledgeGraph(config.graph)
-            batch_size = config.graph.extraction_batch_size
-
-            for i in range(0, len(all_chunks), batch_size):
-                batch = all_chunks[i : i + batch_size]
-                entities, relationships = await extract_entities_and_relationships(
-                    batch, anthropic_client, config.graph
-                )
-                graph.add_entities(entities)
-                graph.add_relationships(relationships)
-
-            graph.save(config.graph_data_path)
-            set_graph_retriever(GraphRetriever(graph, config.graph, all_chunks))
-            logger.info(
-                "Built knowledge graph",
-                nodes=graph.num_nodes,
-                edges=graph.num_edges,
-            )
+            await _build_knowledge_graph(all_chunks, config)
 
         logger.info(
             "Ingestion complete",
@@ -300,6 +363,9 @@ async def ingest_documents(
     except GoFetchError as exc:
         logger.error("Ingestion failed", error=str(exc))
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+    except Exception as exc:
+        logger.error("Unexpected ingestion error", error=str(exc), exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal ingestion error") from exc
 
 
 async def _run_retrieval(
@@ -441,10 +507,9 @@ async def query_rag(
             )
 
             # Check confidence
-            low_confidence = False
             confidence = reranked[0].score if reranked else 0.0
-            if confidence < config.retrieval.confidence_threshold:
-                low_confidence = True
+            low_confidence = confidence < config.retrieval.confidence_threshold
+            if low_confidence:
                 logger.warning(
                     "Low confidence retrieval",
                     confidence=confidence,
@@ -504,6 +569,9 @@ async def query_rag(
         except GoFetchError as exc:
             logger.error("Query pipeline failed", error=str(exc))
             yield {"event": "error", "data": json.dumps({"error": str(exc)})}
+        except Exception as exc:
+            logger.error("Unexpected query error", error=str(exc), exc_info=True)
+            yield {"event": "error", "data": json.dumps({"error": "Internal error"})}
 
     return EventSourceResponse(event_generator())
 
@@ -512,25 +580,26 @@ async def query_rag(
 async def health_check() -> HealthResponse:
     """Check the health of the RAG system.
 
-    Verifies Qdrant connectivity and BM25 index availability.
+    Verifies PostgreSQL connectivity and BM25 index availability.
 
     Returns:
         HealthResponse with component status.
     """
-    config = get_config()
     sparse = get_sparse_retriever()
 
-    qdrant_ok = False
+    pg_ok = False
     try:
-        client = AsyncQdrantClient(url=config.qdrant_url)
-        await client.get_collections()
-        qdrant_ok = True
-        await client.close()
-    except Exception:
-        logger.warning("Qdrant health check failed")
+        pool = get_pool()
+        async with pool.acquire() as conn:
+            await conn.fetchval("SELECT 1")
+        pg_ok = True
+    except (OSError, TimeoutError) as exc:
+        logger.warning("PostgreSQL health check failed", error=str(exc))
+    except RuntimeError as exc:
+        logger.warning("PostgreSQL pool not initialized", error=str(exc))
 
     return HealthResponse(
-        status="healthy" if qdrant_ok else "degraded",
-        qdrant=qdrant_ok,
+        status="healthy" if pg_ok else "degraded",
+        postgres=pg_ok,
         bm25_loaded=sparse is not None,
     )

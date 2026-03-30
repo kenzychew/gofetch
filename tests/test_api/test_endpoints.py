@@ -6,7 +6,6 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 
 from src.api.main import app
-from src.config import AppConfig
 
 
 @pytest.fixture
@@ -23,13 +22,13 @@ async def async_client() -> AsyncClient:
 
 @pytest.mark.asyncio
 async def test_health_endpoint_structure() -> None:
-    """Health endpoint should return expected structure even if Qdrant is down."""
+    """Health endpoint should return expected structure even if PostgreSQL is down."""
     # Mock the dependencies to avoid needing real services
     with (
-        patch("src.api.main.get_config") as mock_config,
+        patch("src.api.main.get_pool") as mock_pool,
         patch("src.api.main.get_sparse_retriever") as mock_sparse,
     ):
-        mock_config.return_value = AppConfig()
+        mock_pool.side_effect = RuntimeError("Pool not initialized")
         mock_sparse.return_value = None
 
         transport = ASGITransport(app=app)
