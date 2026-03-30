@@ -26,7 +26,7 @@ class RetrievalError(GoFetchError):
 
 
 class VectorSearchError(RetrievalError):
-    """Raised when Qdrant vector search fails."""
+    """Raised when vector search fails."""
 
 
 class SparseSearchError(RetrievalError):

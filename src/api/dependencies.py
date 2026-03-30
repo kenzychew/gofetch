@@ -5,8 +5,10 @@ import uuid
 from collections.abc import AsyncIterator
 from pathlib import Path
 
+import asyncpg
 import structlog
 from anthropic import AsyncAnthropic
+from pgvector.asyncpg import register_vector
 
 from src.config import AppConfig, PromptConfig
 from src.generation.prompt import PromptBuilder
@@ -30,19 +32,21 @@ class DependencyContainer:
 
     Attributes:
         config: Application configuration.
+        pool: asyncpg connection pool for PostgreSQL.
         embedder: Sentence-transformer embedder.
-        dense_retriever: Qdrant dense vector retriever.
+        dense_retriever: pgvector dense vector retriever.
         sparse_retriever: BM25 sparse retriever (None until ingestion).
         graph_retriever: Graph retriever (None until ingestion with graph enabled).
         reranker: Cross-encoder reranker.
         anthropic_client: Async Anthropic API client.
         prompt_builder: Citation-aware prompt builder.
-        vector_indexer: Qdrant vector indexer.
+        vector_indexer: pgvector vector indexer.
     """
 
     def __init__(self) -> None:
         """Initialize the container with all fields set to None."""
         self.config: AppConfig | None = None
+        self.pool: asyncpg.Pool | None = None
         self.embedder: Embedder | None = None
         self.dense_retriever: DenseRetriever | None = None
         self.sparse_retriever: SparseRetriever | None = None
@@ -80,7 +84,19 @@ def _load_env(env_path: str = ".env") -> None:
             os.environ[key] = value
 
 
-def init_dependencies(config: AppConfig, prompt_config: PromptConfig) -> None:
+async def _init_pg_connection(conn: asyncpg.Connection) -> None:
+    """Register pgvector type codec on each new connection.
+
+    Called automatically by asyncpg when a new connection is created
+    in the pool, enabling native vector type encoding/decoding.
+
+    Args:
+        conn: The new asyncpg connection.
+    """
+    await register_vector(conn)
+
+
+async def init_dependencies(config: AppConfig, prompt_config: PromptConfig) -> None:
     """Initialize all pipeline components as singletons.
 
     Called once at application startup. Components are stored in the
@@ -92,12 +108,30 @@ def init_dependencies(config: AppConfig, prompt_config: PromptConfig) -> None:
     """
     _load_env()
 
+    # Env var takes precedence over config file for deployment flexibility
+    database_url = os.environ.get("DATABASE_URL", config.database_url)
+
+    # Create the pgvector extension before opening the pool, because
+    # register_vector (the pool init callback) needs the type to exist
+    bootstrap_conn = await asyncpg.connect(dsn=database_url)
+    try:
+        await bootstrap_conn.execute("CREATE EXTENSION IF NOT EXISTS vector")
+    finally:
+        await bootstrap_conn.close()
+
+    _container.pool = await asyncpg.create_pool(
+        dsn=database_url,
+        min_size=2,
+        max_size=10,
+        init=_init_pg_connection,
+    )
+
     _container.config = config
     _container.embedder = Embedder(config.ingestion)
-    _container.dense_retriever = DenseRetriever(config)
+    _container.dense_retriever = DenseRetriever(_container.pool, config)
     _container.reranker = CrossEncoderReranker(config.retrieval)
     _container.anthropic_client = AsyncAnthropic()
-    _container.vector_indexer = VectorIndexer(config)
+    _container.vector_indexer = VectorIndexer(_container.pool, config)
 
     config.prompts = prompt_config
     _container.prompt_builder = PromptBuilder(prompt_config, config.generation)
@@ -127,6 +161,27 @@ def init_dependencies(config: AppConfig, prompt_config: PromptConfig) -> None:
         logger.warning("No BM25 index found, sparse retrieval unavailable until ingestion")
 
     logger.info("All dependencies initialized")
+
+
+def get_pool() -> asyncpg.Pool:
+    """Get the asyncpg connection pool.
+
+    Returns:
+        The asyncpg connection pool.
+    """
+    if _container.pool is None:
+        msg = "Connection pool not initialized"
+        raise RuntimeError(msg)
+    return _container.pool
+
+
+async def close_pool() -> None:
+    """Close the asyncpg connection pool."""
+    if _container.pool is not None:
+        try:
+            await _container.pool.close()
+        finally:
+            _container.pool = None
 
 
 def get_config() -> AppConfig:

@@ -16,8 +16,8 @@ logger = get_logger(__name__)
 def _generate_chunk_id(source: str, index: int) -> str:
     """Generate a deterministic chunk ID from source and index.
 
-    Uses the first 32 hex chars of a SHA-256 hash formatted as a UUID,
-    which Qdrant accepts as a valid point ID.
+    Uses the first 32 hex chars of a SHA-256 hash formatted as a UUID
+    string, ensuring deterministic IDs across re-ingestion runs.
 
     Args:
         source: Source document identifier.
