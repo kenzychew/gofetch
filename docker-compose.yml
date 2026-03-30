@@ -1,13 +1,14 @@
 services:
-  qdrant:
-    image: qdrant/qdrant:v1.13.2
+  postgres:
+    image: pgvector/pgvector:pg16
     ports:
-      - "6333:6333"
-      - "6334:6334"
+      - "5432:5432"
     volumes:
-      - qdrant_storage:/qdrant/storage
+      - pgdata:/var/lib/postgresql/data
     environment:
-      QDRANT__SERVICE__GRPC_PORT: 6334
+      POSTGRES_USER: gofetch
+      POSTGRES_PASSWORD: gofetch
+      POSTGRES_DB: gofetch
 
   backend:
     build:
@@ -18,9 +19,9 @@ services:
     env_file:
       - .env
     environment:
-      QDRANT_URL: "http://qdrant:6333"
+      DATABASE_URL: "postgresql://gofetch:gofetch@postgres:5432/gofetch"
     depends_on:
-      - qdrant
+      - postgres
     volumes:
       - ./data:/app/data
       - bm25_index:/app/bm25_index
@@ -39,6 +40,6 @@ services:
       - backend
 
 volumes:
-  qdrant_storage:
+  pgdata:
   bm25_index:
   graph_data:
