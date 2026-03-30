@@ -1,10 +1,11 @@
-"""Qdrant vector indexing and BM25 index building."""
+"""PostgreSQL pgvector indexing and BM25 index building."""
 
+import json
 import pickle
 from pathlib import Path
 
-from qdrant_client import AsyncQdrantClient
-from qdrant_client.models import Distance, PointStruct, VectorParams
+import asyncpg
+import numpy as np
 from rank_bm25 import BM25Okapi
 
 from src.config import AppConfig
@@ -14,59 +15,86 @@ from src.schemas import Chunk
 
 logger = get_logger(__name__)
 
+CREATE_EXTENSION_SQL = "CREATE EXTENSION IF NOT EXISTS vector"
+
+CREATE_TABLE_SQL = """
+CREATE TABLE IF NOT EXISTS {table} (
+    chunk_id TEXT PRIMARY KEY,
+    text TEXT NOT NULL,
+    source TEXT NOT NULL,
+    chunk_index INTEGER NOT NULL,
+    embedding vector({dim}) NOT NULL,
+    metadata JSONB NOT NULL DEFAULT '{{}}'
+)
+"""
+
+CREATE_INDEX_SQL = """
+CREATE INDEX IF NOT EXISTS {table}_embedding_idx
+ON {table} USING hnsw (embedding vector_cosine_ops)
+"""
+
+UPSERT_SQL = """
+INSERT INTO {table} (chunk_id, text, source, chunk_index, embedding, metadata)
+VALUES ($1, $2, $3, $4, $5, $6)
+ON CONFLICT (chunk_id) DO UPDATE SET
+    text = EXCLUDED.text,
+    source = EXCLUDED.source,
+    chunk_index = EXCLUDED.chunk_index,
+    embedding = EXCLUDED.embedding,
+    metadata = EXCLUDED.metadata
+"""
+
 
 class VectorIndexer:
-    """Manages Qdrant collection and upserts chunk embeddings.
+    """Manages PostgreSQL pgvector table and upserts chunk embeddings.
 
-    Handles collection creation and batch upsert of chunk vectors
-    with associated payloads.
+    Handles table creation, HNSW index setup, and batch upsert of
+    chunk vectors with associated metadata.
 
     Attributes:
-        client: Async Qdrant client instance.
-        collection_name: Name of the Qdrant collection.
+        pool: asyncpg connection pool.
+        table_name: Name of the chunks table.
         embedding_dim: Dimensionality of the embedding vectors.
     """
 
-    def __init__(self, config: AppConfig) -> None:
+    def __init__(self, pool: asyncpg.Pool, config: AppConfig) -> None:
         """Initialize the vector indexer.
 
         Args:
-            config: Application configuration with Qdrant URL and collection settings.
+            pool: asyncpg connection pool.
+            config: Application configuration with table and embedding settings.
         """
-        self.client = AsyncQdrantClient(url=config.qdrant_url)
-        self.collection_name = config.collection_name
+        self.pool = pool
+        self.table_name = config.table_name
         self.embedding_dim = config.ingestion.embedding_dim
 
-    async def ensure_collection(self) -> None:
-        """Create the Qdrant collection if it does not exist.
+    async def ensure_table(self) -> None:
+        """Create the pgvector extension, chunks table, and HNSW index if needed.
 
         Raises:
-            IndexingError: If collection creation fails.
+            IndexingError: If table creation fails.
         """
         try:
-            collections = await self.client.get_collections()
-            existing_names = [c.name for c in collections.collections]
+            async with self.pool.acquire() as conn:
+                # Wrap DDL in a transaction so partial failures
+                # (eg table created but index fails) get rolled back
+                async with conn.transaction():
+                    await conn.execute(CREATE_EXTENSION_SQL)
+                    await conn.execute(
+                        CREATE_TABLE_SQL.format(table=self.table_name, dim=self.embedding_dim)
+                    )
+                    await conn.execute(CREATE_INDEX_SQL.format(table=self.table_name))
 
-            if self.collection_name not in existing_names:
-                await self.client.create_collection(
-                    collection_name=self.collection_name,
-                    vectors_config=VectorParams(
-                        size=self.embedding_dim,
-                        distance=Distance.COSINE,
-                    ),
-                )
-                logger.info(
-                    "Created Qdrant collection",
-                    collection=self.collection_name,
-                    dim=self.embedding_dim,
-                )
-            else:
-                logger.info("Qdrant collection already exists", collection=self.collection_name)
+            logger.info(
+                "Ensured pgvector table",
+                table=self.table_name,
+                dim=self.embedding_dim,
+            )
         except Exception as exc:
-            raise IndexingError(f"Failed to ensure Qdrant collection: {exc}") from exc
+            raise IndexingError(f"Failed to ensure pgvector table: {exc}") from exc
 
     async def upsert_chunks(self, chunks: list[Chunk]) -> int:
-        """Upsert chunk embeddings into Qdrant.
+        """Upsert chunk embeddings into PostgreSQL.
 
         Args:
             chunks: List of chunks with populated embeddings.
@@ -80,39 +108,28 @@ class VectorIndexer:
         if not chunks:
             return 0
 
-        points = [
-            PointStruct(
-                id=chunk.chunk_id,
-                vector=chunk.embedding,
-                payload={
-                    "chunk_id": chunk.chunk_id,
-                    "text": chunk.text,
-                    "source": chunk.source,
-                    "index": chunk.index,
-                    "metadata": chunk.metadata,
-                },
-            )
-            for chunk in chunks
-        ]
-
         try:
-            # Qdrant supports batch upsert, process in batches of 100
-            batch_size = 100
-            for i in range(0, len(points), batch_size):
-                batch = points[i : i + batch_size]
-                await self.client.upsert(
-                    collection_name=self.collection_name,
-                    points=batch,
+            sql = UPSERT_SQL.format(table=self.table_name)
+            rows = [
+                (
+                    chunk.chunk_id,
+                    chunk.text,
+                    chunk.source,
+                    chunk.index,
+                    np.array(chunk.embedding, dtype=np.float32),
+                    json.dumps(chunk.metadata),
                 )
+                for chunk in chunks
+            ]
 
-            logger.info("Upserted chunks to Qdrant", count=len(chunks))
+            async with self.pool.acquire() as conn:
+                async with conn.transaction():
+                    await conn.executemany(sql, rows)
+
+            logger.info("Upserted chunks to PostgreSQL", count=len(chunks))
             return len(chunks)
         except Exception as exc:
-            raise IndexingError(f"Failed to upsert chunks to Qdrant: {exc}") from exc
-
-    async def close(self) -> None:
-        """Close the Qdrant client connection."""
-        await self.client.close()
+            raise IndexingError(f"Failed to upsert chunks to PostgreSQL: {exc}") from exc
 
 
 class BM25Indexer:
