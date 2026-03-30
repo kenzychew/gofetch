@@ -2,8 +2,12 @@
 
 import asyncio
 import json
+import os
 import time
 from pathlib import Path
+
+import asyncpg
+from pgvector.asyncpg import register_vector
 
 from src.config import AppConfig, GenerationConfig, IngestionConfig, RetrievalConfig
 from src.ingestion.embedder import Embedder
@@ -122,8 +126,17 @@ async def evaluate_retrieval(
     bm25, bm25_chunks = bm25_indexer.load_index()
     sparse_retriever = SparseRetriever(bm25, bm25_chunks)
 
-    # Initialize dense retriever
-    dense_retriever = DenseRetriever(config)
+    # Initialize asyncpg pool and dense retriever
+    database_url = os.environ.get("DATABASE_URL", config.database_url)
+
+    async def _register_pgvector(conn: asyncpg.Connection) -> None:
+        """Register pgvector codec on new pool connections."""
+        await register_vector(conn)
+
+    pool = await asyncpg.create_pool(
+        dsn=database_url, min_size=1, max_size=5, init=_register_pgvector
+    )
+    dense_retriever = DenseRetriever(pool, config)
 
     # Initialize reranker
     reranker = CrossEncoderReranker(config.retrieval)
@@ -196,8 +209,26 @@ async def evaluate_retrieval(
 
         all_results[config_name] = config_results
 
-    await dense_retriever.close()
+    await pool.close()
     return all_results
+
+
+def _avg_metric(key: str, rows: list[dict[str, float | str]]) -> float:
+    """Compute the average of a metric column, skipping non-float and negative values.
+
+    Args:
+        key: Metric column name.
+        rows: List of per-question metric dictionaries.
+
+    Returns:
+        Average value, or 0.0 if no valid values exist.
+    """
+    vals: list[float] = []
+    for r in rows:
+        v = r[key]
+        if isinstance(v, float) and v >= 0:
+            vals.append(v)
+    return sum(vals) / len(vals) if vals else 0.0
 
 
 def print_ablation_table(results: dict[str, list[dict[str, float | str]]]) -> None:
@@ -216,22 +247,20 @@ def print_ablation_table(results: dict[str, list[dict[str, float | str]]]) -> No
     print("-" * 80)
 
     for config_name, config_results in results.items():
-        rows = config_results  # Bind to local for closure
-
-        def avg(key: str, data: list[dict[str, float | str]] = rows) -> float:
-            vals = [r[key] for r in data if isinstance(r[key], float) and r[key] >= 0]
-            return sum(vals) / len(vals) if vals else 0.0
-
-        valid = len([r for r in rows if isinstance(r["hit@1"], float) and r["hit@1"] >= 0])
-        total = len(rows)
+        valid = 0
+        for r in config_results:
+            v = r["hit@1"]
+            if isinstance(v, float) and v >= 0:
+                valid += 1
+        total = len(config_results)
 
         print(
             f"{config_name:<25} "
-            f"{avg('hit@1'):>7.3f} "
-            f"{avg('hit@3'):>7.3f} "
-            f"{avg('hit@5'):>7.3f} "
-            f"{avg('mrr'):>7.3f} "
-            f"{avg('keyword_recall'):>7.3f}"
+            f"{_avg_metric('hit@1', config_results):>7.3f} "
+            f"{_avg_metric('hit@3', config_results):>7.3f} "
+            f"{_avg_metric('hit@5', config_results):>7.3f} "
+            f"{_avg_metric('mrr', config_results):>7.3f} "
+            f"{_avg_metric('keyword_recall', config_results):>7.3f}"
         )
         print(f"  (evaluated {valid}/{total} questions, skipped unanswerable/multi-source)")
 
