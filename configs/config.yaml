@@ -6,8 +6,8 @@ defaults:
   - prompts: citation
   - _self_
 
-qdrant_url: "http://localhost:6333"
-collection_name: "gofetch"
+database_url: "postgresql://gofetch:gofetch@localhost:5432/gofetch"
+table_name: "chunks"
 bm25_index_path: "bm25_index/bm25.pkl"
 graph_data_path: "graph_data/graph.json"
 data_dir: "data"
