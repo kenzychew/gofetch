@@ -16,6 +16,7 @@ RUN groupadd --gid 1000 appuser && \
 
 WORKDIR /app
 
+COPY --from=builder /usr/local/bin/uv /usr/local/bin/uv
 COPY --from=builder /app /app
 
 RUN chown -R appuser:appuser /app
