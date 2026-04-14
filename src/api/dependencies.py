@@ -7,7 +7,7 @@ from pathlib import Path
 
 import asyncpg
 import structlog
-from anthropic import AsyncAnthropic
+from google import genai
 from pgvector.asyncpg import register_vector
 
 from src.config import AppConfig, PromptConfig
@@ -38,7 +38,7 @@ class DependencyContainer:
         sparse_retriever: BM25 sparse retriever (None until ingestion).
         graph_retriever: Graph retriever (None until ingestion with graph enabled).
         reranker: Cross-encoder reranker.
-        anthropic_client: Async Anthropic API client.
+        llm_client: Google GenAI client for Gemini.
         prompt_builder: Citation-aware prompt builder.
         vector_indexer: pgvector vector indexer.
     """
@@ -52,7 +52,7 @@ class DependencyContainer:
         self.sparse_retriever: SparseRetriever | None = None
         self.graph_retriever: GraphRetriever | None = None
         self.reranker: CrossEncoderReranker | None = None
-        self.anthropic_client: AsyncAnthropic | None = None
+        self.llm_client: genai.Client | None = None
         self.prompt_builder: PromptBuilder | None = None
         self.vector_indexer: VectorIndexer | None = None
 
@@ -130,7 +130,13 @@ async def init_dependencies(config: AppConfig, prompt_config: PromptConfig) -> N
     _container.embedder = Embedder(config.ingestion)
     _container.dense_retriever = DenseRetriever(_container.pool, config)
     _container.reranker = CrossEncoderReranker(config.retrieval)
-    _container.anthropic_client = AsyncAnthropic()
+    gcp_project = os.environ.get("GCP_PROJECT", config.gcp_project)
+    gcp_region = os.environ.get("GCP_REGION", config.gcp_region)
+    _container.llm_client = genai.Client(
+        vertexai=True,
+        project=gcp_project,
+        location=gcp_region,
+    )
     _container.vector_indexer = VectorIndexer(_container.pool, config)
 
     config.prompts = prompt_config
@@ -268,16 +274,16 @@ def get_reranker() -> CrossEncoderReranker:
     return _container.reranker
 
 
-def get_anthropic_client() -> AsyncAnthropic:
-    """Get the async Anthropic client instance.
+def get_llm_client() -> genai.Client:
+    """Get the Google GenAI client instance.
 
     Returns:
-        The Anthropic client singleton.
+        The GenAI client singleton.
     """
-    if _container.anthropic_client is None:
-        msg = "Anthropic client not initialized"
+    if _container.llm_client is None:
+        msg = "LLM client not initialized"
         raise RuntimeError(msg)
-    return _container.anthropic_client
+    return _container.llm_client
 
 
 def get_prompt_builder() -> PromptBuilder:

@@ -59,14 +59,14 @@ class GenerationConfig:
     """Configuration for the generation pipeline.
 
     Attributes:
-        model: Anthropic model name.
+        model: Gemini model name.
         temperature: Sampling temperature.
         max_tokens: Maximum tokens in the generated response.
         max_context_tokens: Maximum tokens for context chunks.
         stream: Whether to stream the response via SSE.
     """
 
-    model: str = "claude-haiku-4-5-20251001"
+    model: str = "gemini-2.5-flash"
     temperature: float = 0.1
     max_tokens: int = 1024
     max_context_tokens: int = 3000
@@ -78,7 +78,7 @@ class GraphConfig:
     """Configuration for the knowledge graph.
 
     Attributes:
-        extraction_model: Anthropic model for entity extraction.
+        extraction_model: Gemini model for entity extraction.
         extraction_batch_size: Number of chunks per extraction call.
         max_entities_per_chunk: Max entities to extract per chunk.
         max_relationships_per_chunk: Max relationships per chunk.
@@ -87,7 +87,7 @@ class GraphConfig:
         graph_top_k: Number of chunks from graph retrieval.
     """
 
-    extraction_model: str = "claude-haiku-4-5-20251001"
+    extraction_model: str = "gemini-2.5-flash"
     extraction_batch_size: int = 3
     max_entities_per_chunk: int = 10
     max_relationships_per_chunk: int = 15
@@ -127,6 +127,8 @@ class AppConfig:
         prompts: Prompt template config.
         database_url: PostgreSQL connection string.
         table_name: Name of the chunks table in PostgreSQL.
+        gcp_project: Google Cloud project ID for Vertex AI.
+        gcp_region: Google Cloud region for Vertex AI.
         bm25_index_path: File path for pickled BM25 index.
         graph_data_path: File path for serialized graph data.
         data_dir: Directory containing source documents.
@@ -140,6 +142,8 @@ class AppConfig:
     prompts: PromptConfig = field(default_factory=PromptConfig)
     database_url: str = "postgresql://gofetch:gofetch@localhost:5432/gofetch"
     table_name: str = "chunks"
+    gcp_project: str = "gofetch-493315"
+    gcp_region: str = "us-central1"
     bm25_index_path: str = "bm25_index/bm25.pkl"
     graph_data_path: str = "graph_data/graph.json"
     data_dir: str = "data"
