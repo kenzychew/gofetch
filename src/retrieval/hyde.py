@@ -1,6 +1,7 @@
 """Hypothetical Document Embeddings (HyDE) for query expansion."""
 
-from anthropic import AsyncAnthropic
+from google import genai
+from google.genai import types
 
 from src.config import GenerationConfig
 from src.logging import get_logger
@@ -17,7 +18,7 @@ HYDE_PROMPT = (
 
 async def generate_hypothetical_document(
     query: str,
-    client: AsyncAnthropic,
+    client: genai.Client,
     config: GenerationConfig,
 ) -> str:
     """Generate a hypothetical document that answers the query.
@@ -28,7 +29,7 @@ async def generate_hypothetical_document(
 
     Args:
         query: The user's search query.
-        client: Async Anthropic client instance.
+        client: Google GenAI client instance.
         config: Generation configuration with model settings.
 
     Returns:
@@ -36,13 +37,15 @@ async def generate_hypothetical_document(
     """
     prompt = HYDE_PROMPT.format(query=query)
 
-    response = await client.messages.create(
+    response = client.models.generate_content(
         model=config.model,
-        messages=[{"role": "user", "content": prompt}],
-        temperature=0.7,
-        max_tokens=256,
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            temperature=0.7,
+            max_output_tokens=256,
+        ),
     )
 
-    content = response.content[0].text if response.content else ""
+    content = response.text or ""
     logger.info("Generated HyDE document", query_preview=query[:50], hyde_len=len(content))
     return content
