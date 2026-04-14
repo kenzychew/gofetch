@@ -20,6 +20,8 @@ services:
       - .env
     environment:
       DATABASE_URL: "postgresql://gofetch:gofetch@postgres:5432/gofetch"
+      GCP_PROJECT: "${GCP_PROJECT:-gofetch-493315}"
+      GCP_REGION: "${GCP_REGION:-us-central1}"
     depends_on:
       - postgres
     volumes:
