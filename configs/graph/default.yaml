@@ -1,4 +1,4 @@
-extraction_model: "claude-haiku-4-5-20251001"
+extraction_model: "gemini-2.5-flash"
 extraction_batch_size: 3
 max_entities_per_chunk: 10
 max_relationships_per_chunk: 15

@@ -1,4 +1,4 @@
-model: "claude-haiku-4-5-20251001"
+model: "gemini-2.5-flash"
 temperature: 0.1
 max_tokens: 1024
 max_context_tokens: 3000
