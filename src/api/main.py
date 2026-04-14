@@ -7,19 +7,19 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from anthropic import AsyncAnthropic
 from fastapi import Depends, FastAPI, HTTPException, Query, UploadFile
+from google import genai
 from omegaconf import OmegaConf
 from pydantic import BaseModel
 from sse_starlette.sse import EventSourceResponse
 
 from src.api.dependencies import (
     close_pool,
-    get_anthropic_client,
     get_config,
     get_dense_retriever,
     get_embedder,
     get_graph_retriever,
+    get_llm_client,
     get_pool,
     get_prompt_builder,
     get_request_id,
@@ -145,6 +145,8 @@ def _load_config() -> tuple[AppConfig, PromptConfig]:
     top_level_keys = [
         "database_url",
         "table_name",
+        "gcp_project",
+        "gcp_region",
         "bm25_index_path",
         "graph_data_path",
         "data_dir",
@@ -272,14 +274,14 @@ async def _build_knowledge_graph(
         chunks: All ingested chunks with embeddings.
         config: Application configuration.
     """
-    anthropic_client = get_anthropic_client()
+    llm_client = get_llm_client()
     graph = KnowledgeGraph(config.graph)
     batch_size = config.graph.extraction_batch_size
 
     for i in range(0, len(chunks), batch_size):
         batch = chunks[i : i + batch_size]
         entities, relationships = await extract_entities_and_relationships(
-            batch, anthropic_client, config.graph
+            batch, llm_client, config.graph
         )
         graph.add_entities(entities)
         graph.add_relationships(relationships)
@@ -376,7 +378,7 @@ async def _run_retrieval(
     sparse_retriever: SparseRetriever | None,
     graph_retriever: GraphRetriever | None,
     reranker: CrossEncoderReranker,
-    anthropic_client: AsyncAnthropic,
+    llm_client: genai.Client,
     latency: dict[str, float],
 ) -> list[RetrievalResult]:
     """Run the full retrieval pipeline: embed, retrieve, fuse, rerank.
@@ -392,7 +394,7 @@ async def _run_retrieval(
         sparse_retriever: BM25 retriever (may be None).
         graph_retriever: Graph retriever (may be None).
         reranker: Cross-encoder reranker.
-        anthropic_client: Anthropic client (for HyDE/decomposition).
+        llm_client: GenAI client (for HyDE/decomposition).
         latency: Mutable dict to record timing per stage.
 
     Returns:
@@ -402,13 +404,13 @@ async def _run_retrieval(
     queries = [q]
     if config.retrieval.use_decomposition:
         t0 = time.perf_counter()
-        queries = await decompose_query(q, anthropic_client, config.generation)
+        queries = await decompose_query(q, llm_client, config.generation)
         latency["decompose_ms"] = (time.perf_counter() - t0) * 1000
 
     # Embed query (optionally via HyDE)
     t0 = time.perf_counter()
     if config.retrieval.use_hyde:
-        hyde_doc = await generate_hypothetical_document(q, anthropic_client, config.generation)
+        hyde_doc = await generate_hypothetical_document(q, llm_client, config.generation)
         query_embedding = await asyncio.to_thread(embedder.embed_query, hyde_doc)
         latency["hyde_ms"] = (time.perf_counter() - t0) * 1000
     else:
@@ -487,7 +489,7 @@ async def query_rag(
     sparse_retriever = get_sparse_retriever()
     graph_retriever = get_graph_retriever()
     reranker = get_reranker()
-    anthropic_client = get_anthropic_client()
+    llm_client = get_llm_client()
     prompt_builder = get_prompt_builder()
 
     async def event_generator() -> AsyncIterator[dict[str, str]]:
@@ -502,7 +504,7 @@ async def query_rag(
                 sparse_retriever,
                 graph_retriever,
                 reranker,
-                anthropic_client,
+                llm_client,
                 latency,
             )
 
@@ -535,7 +537,7 @@ async def query_rag(
 
             # Stream LLM response
             t0 = time.perf_counter()
-            async for token in stream_completion(messages, anthropic_client, config.generation):
+            async for token in stream_completion(messages, llm_client, config.generation):
                 yield {"event": "token", "data": token}
             latency["generation_ms"] = (time.perf_counter() - t0) * 1000
 
