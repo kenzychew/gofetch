@@ -2,7 +2,8 @@
 
 import json
 
-from anthropic import AsyncAnthropic
+from google import genai
+from google.genai import types
 
 from src.config import GraphConfig
 from src.exceptions import ExtractionError
@@ -38,7 +39,7 @@ EXTRACTION_PROMPT = (
 
 async def extract_entities_and_relationships(
     chunks: list[Chunk],
-    client: AsyncAnthropic,
+    client: genai.Client,
     config: GraphConfig,
 ) -> tuple[list[GraphEntity], list[GraphRelationship]]:
     """Extract entities and relationships from a batch of chunks.
@@ -49,7 +50,7 @@ async def extract_entities_and_relationships(
 
     Args:
         chunks: Batch of chunks to extract from.
-        client: Async Anthropic client instance.
+        client: Google GenAI client instance.
         config: Graph configuration with extraction settings.
 
     Returns:
@@ -68,16 +69,18 @@ async def extract_entities_and_relationships(
     )
 
     try:
-        response = await client.messages.create(
+        response = client.models.generate_content(
             model=config.extraction_model,
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.0,
-            max_tokens=2048,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                temperature=0.0,
+                max_output_tokens=2048,
+            ),
         )
     except Exception as exc:
         raise ExtractionError(f"LLM extraction call failed: {exc}") from exc
 
-    content = response.content[0].text if response.content else ""
+    content = response.text or ""
     if not content.strip() or content.strip() in ("{}", "[]"):
         logger.warning("Empty extraction response", chunks=len(chunks))
         return [], []
@@ -86,7 +89,6 @@ async def extract_entities_and_relationships(
     cleaned = content.strip()
     if cleaned.startswith("```"):
         lines = cleaned.split("\n")
-        # Remove first line (```json or ```) and last line (```)
         lines = [line for line in lines if not line.strip().startswith("```")]
         cleaned = "\n".join(lines)
 
