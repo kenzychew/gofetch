@@ -1,0 +1,34 @@
+MAS FinTech Regulatory Sandbox
+Source: mas.gov.sg/development/fintech/regulatory-sandbox
+Last updated: April 2026
+
+Overview of Regulatory Sandbox
+
+The FinTech Regulatory Sandbox framework enables financial institutions and FinTech players to experiment with innovative financial products or services in a live environment but within a well-defined space and duration.
+
+How the sandbox works:
+
+Depending on the experiment, MAS will provide appropriate regulatory support by relaxing specific legal and regulatory requirements prescribed by MAS, which the sandbox entity will otherwise be subject to, for the duration of the sandbox.
+
+The sandbox will include appropriate safeguards to contain the consequences of failure and maintain the overall safety and soundness of the financial system.
+
+Upon successful experimentation and on exiting the sandbox, the sandbox entity must fully comply with the relevant legal and regulatory requirements.
+
+Note: Applicants seeking to provide digital advisory services should refer to MAS' regulatory framework for digital advisers which is set out in the Guidelines on Provision of Digital Advisory Services. The regulatory sandbox will not be applicable for such applicants.
+
+Sandbox Options
+
+1. Sandbox
+For more complex business models where customisation is required to balance the risks and benefits of the experiment.
+
+2. Sandbox Express
+Fast-track approvals for activities where the risks are low and well understood by the market. Relies on disclosures and pre-determined rules.
+
+3. Sandbox Plus
+One-stop assistance in areas of regulatory support and financial grant.
+
+Engaging the Services of a Sandbox Entity
+
+From time to time, MAS receives information on companies that have claimed to be approved by MAS to experiment in the sandbox. Consumers should exercise care when dealing with these companies or with other persons acting on their behalf. MAS maintains an alert list of such companies.
+
+Contact: fintech_sandbox@mas.gov.sg
