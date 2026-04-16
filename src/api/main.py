@@ -280,11 +280,14 @@ async def _build_knowledge_graph(
 
     for i in range(0, len(chunks), batch_size):
         batch = chunks[i : i + batch_size]
-        entities, relationships = await extract_entities_and_relationships(
-            batch, llm_client, config.graph
-        )
-        graph.add_entities(entities)
-        graph.add_relationships(relationships)
+        try:
+            entities, relationships = await extract_entities_and_relationships(
+                batch, llm_client, config.graph
+            )
+            graph.add_entities(entities)
+            graph.add_relationships(relationships)
+        except Exception as exc:
+            logger.warning("Graph extraction failed for batch, skipping", batch=i, error=str(exc))
 
     graph.save(config.graph_data_path)
     set_graph_retriever(GraphRetriever(graph, config.graph, chunks))
