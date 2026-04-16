@@ -4,7 +4,7 @@ RAG pipeline with hybrid search, re-ranking, and LLM-powered answer generation w
 
 ## What it does
 
-Upload documents (PDF/text), ask questions in natural language, get answers grounded in your documents with source citations. The system combines three retrieval signals (keyword search, semantic vectors, knowledge graph), re-ranks candidates with a cross-encoder, and streams a cited answer from Claude.
+Upload documents (PDF/text), ask questions in natural language, get answers grounded in your documents with source citations. The system combines three retrieval signals (keyword search, semantic vectors, knowledge graph), re-ranks candidates with a cross-encoder, and streams a cited answer via Gemini.
 
 ## Tech stack
 
@@ -14,7 +14,7 @@ Upload documents (PDF/text), ask questions in natural language, get answers grou
 - **Embeddings**: sentence-transformers (all-MiniLM-L6-v2)
 - **Re-ranker**: cross-encoder (ms-marco-MiniLM-L-6-v2)
 - **Knowledge graph**: NetworkX with LLM-based entity extraction
-- **LLM**: Anthropic API (Claude) with SSE streaming
+- **LLM**: Google Gemini (Vertex AI) with SSE streaming
 - **Frontend**: Gradio
 - **Deployment**: Docker Compose
 
@@ -39,7 +39,7 @@ src/
     decomposer.py        # Multi-part query decomposition (optional)
   generation/
     prompt.py            # Token-budgeted prompt building with citations
-    stream.py            # Anthropic streaming with retry logic
+    stream.py            # Gemini streaming with retry logic
   graph/
     builder.py           # NetworkX knowledge graph
     extractor.py         # LLM-based entity/relationship extraction
@@ -61,14 +61,14 @@ tests/                   # pytest suite
 - Python 3.11+
 - [uv](https://docs.astral.sh/uv/) package manager
 - Docker and Docker Compose
-- Anthropic API key
+- Google Cloud project with Vertex AI enabled
 
 ### Quick start
 
 1. Clone the repo and create your `.env`:
    ```bash
    cp .env.example .env
-   # Edit .env and add your ANTHROPIC_API_KEY
+   # Edit .env and set your GCP_PROJECT and GCP_REGION
    ```
 
 2. Start everything:
