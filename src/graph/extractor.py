@@ -85,17 +85,18 @@ async def extract_entities_and_relationships(
         logger.warning("Empty extraction response", chunks=len(chunks))
         return [], []
 
-    # Strip markdown code fences if present
+    # Strip markdown code fences if present (Gemini wraps JSON in ```json ... ```)
     cleaned = content.strip()
-    if cleaned.startswith("```"):
+    if "```" in cleaned:
         lines = cleaned.split("\n")
         lines = [line for line in lines if not line.strip().startswith("```")]
-        cleaned = "\n".join(lines)
+        cleaned = "\n".join(lines).strip()
 
     try:
         data = json.loads(cleaned)
-    except json.JSONDecodeError as exc:
-        raise ExtractionError(f"Failed to parse extraction JSON: {content[:200]}") from exc
+    except json.JSONDecodeError:
+        logger.warning("Failed to parse extraction JSON, skipping batch", preview=content[:200])
+        return [], []
 
     # Parse entities
     entities: list[GraphEntity] = []
