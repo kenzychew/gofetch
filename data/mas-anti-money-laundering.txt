@@ -1,0 +1,61 @@
+MAS Anti-Money Laundering
+Source: mas.gov.sg/regulation/anti-money-laundering
+Last updated: April 2026
+
+Anti-Money Laundering
+
+Singapore supports global efforts to combat money laundering, terrorism financing and proliferation financing. Maintaining a clean and trusted financial centre is important given our role as an international business hub.
+
+Overview
+
+Combating money laundering, terrorism financing and proliferation financing are priorities for MAS. We require our financial institutions to have sufficiently robust controls to detect and deter such illicit activities. We also partner the industry to bolster their defences, by engaging them on emerging risks, evolving criminal typologies and industry best practices. MAS is firmly committed to safeguarding Singapore as a clean and trusted financial centre.
+
+MAS supervises and works closely with financial institutions to strengthen Singapore's defences against money laundering, terrorism financing, and financing of the proliferation of weapons of mass destruction.
+
+International Standard Setting
+
+Singapore is an active member of the Financial Action Task Force (FATF), the global standard setting and oversight body for anti-money laundering, countering the financing of terrorism and counter-proliferation financing (AML/CFT/CPF). Singapore collaborates closely with fellow AML/CFT/CPF policy makers and supervisors to develop international standards. Singapore is also a founding member of the Asia-Pacific Group on Money Laundering.
+
+Regulations and Guidance
+
+The controls that MAS requires of financial institutions include:
+- Identify and know their customers (including beneficial owners)
+- Conduct regular account reviews
+- Monitor and report any suspicious transaction
+
+Key regulatory documents:
+- AML/CFT Notices: Requirements for financial institutions
+- AML/CFT Guidelines: Supervisory expectations for financial institutions
+- Other MAS Guidance documents
+- AML/CFT-related announcements and media releases
+- Guidance papers from FATF and ACIP (AML/CFT Industry Partnership)
+
+Targeted Financial Sanctions
+
+Financial institutions, non-financial institutions and individuals in Singapore are required to comply with relevant sanctions requirements in relation to UN-designated individuals and entities. Financial institutions must also comply with MAS Notice "Financial measures in relation to Russia".
+
+Financial institutions must comply with various Regulations under Section 192 of the Financial Services and Markets Act 2022 to discharge Singapore's UN Security Council obligations. They must also comply with obligations under the Terrorism (Suppression of Financing) Act 2002.
+
+Penalties: Under the Financial Services and Markets Act 2022, a financial institution that fails to comply with any requirements in the applicable AML/CFT Notice is guilty of an offence and is liable on conviction to a fine not exceeding $1 million for each offence. For continuing offences, a further fine of $100,000 for every day during which the offence continues after conviction.
+
+Singapore's Strategy against Money Laundering, Terrorism Financing and Proliferation Financing
+
+Singapore's efforts in AML/CFT/CPF are led by the AML/CFT Steering Committee, comprising:
+- Permanent Secretary of the Ministry of Home Affairs
+- Permanent Secretary of the Ministry of Finance
+- Managing Director of the Monetary Authority of Singapore
+
+National strategies include:
+- National Anti-Money Laundering Strategy
+- National Strategy for Countering the Financing of Terrorism
+- Proliferation Financing National Risk Assessment and Counter-PF Strategy
+- National Asset Recovery Strategy
+- Law Enforcement Strategy to Combat Money Laundering
+
+COSMIC Platform
+
+COllaborative Sharing of ML/TF Information and Cases (COSMIC) is a digital platform where financial institutions collaborate to detect criminal activities. COSMIC allows FIs to securely share information on customers who exhibit multiple red flags that may indicate potential financial crime concerns, if stipulated thresholds are met.
+
+Suspicious Transaction Reporting
+
+Financial institutions can file Suspicious Transaction Reports (STR) through the STRO Online Notices And Reporting (SONAR) platform, which collects machine readable structured data for better analytics.

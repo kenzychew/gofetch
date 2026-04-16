@@ -30,7 +30,6 @@ mlruns/
 
 # Data artifacts
 data/*.pdf
-data/*.txt
 !data/.gitkeep
 
 # PostgreSQL data

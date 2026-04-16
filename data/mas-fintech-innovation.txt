@@ -1,0 +1,62 @@
+MAS FinTech and Innovation
+Source: mas.gov.sg/development/fintech
+Last updated: April 2026
+
+FinTech and Innovation
+
+The financial sector is an integral part of Singapore's ambition to be a smart nation. MAS is creating a Smart Financial Centre through FinTech and innovation.
+
+Key Facts:
+- 50+ innovation labs in Singapore
+- 1,300+ FinTech firms
+- US$4.1B FinTech investment in 2022
+
+Quantum Technology
+
+Given the immense potential of quantum technology, MAS has established a Quantum Computing Programme to put in place the key enablers necessary to support the advancement of quantum-related innovation in financial services.
+
+Future of Finance
+
+From data to digital assets to artificial intelligence, MAS is supercharging the building blocks of modern financial infrastructure through various initiatives.
+
+Singapore Innovation Landscape
+
+Singapore FinTech Festival: The world's largest FinTech festival for the global FinTech community to connect, collaborate and co-create.
+
+Grants for Innovation: Get funding on proof-of-concepts, hiring, business development and more.
+
+Regulatory Sandbox: Sandbox relaxes specific regulatory requirements to enable live experiments of innovation within boundaries.
+
+Green FinTech: Technology solutions and projects in Green Finance.
+
+Central Bank Digital Currency (CBDC): Unlocking new possibilities for the future of money and payments via CBDC.
+
+Digital Assets: Technological advances and the rapid digitalisation of the economy are unlocking new possibilities for future of financial services, one of which is Digital Assets.
+
+E-Payments: MAS payment initiatives include SGQR, FAST, PayNow and UPOS.
+
+Artificial Intelligence: Promoting responsible, sustainable long-term growth for the financial sector through accelerating AI adoption amongst FIs and facilitating research and development.
+
+SGFinDex: A digital public infrastructure that uses national identity and centrally managed online consent system for secure access to financial data from private and public sectors.
+
+Singapore FinTech Ecosystem
+
+Sectors: Banking, Insurance, Capital Markets, Payments, Green FinTech
+
+Technologies: Artificial Intelligence, APIs, Distributed Ledger Technology (DLT), Cloud, Cybersecurity, Digital ID and e-KYC, IP Protection, RegTech, Quantum Technology
+
+Collaborations:
+- FinTech Co-operation Agreements
+- Global Financial Innovation Network (GFIN)
+- MAS-UNCDF Partnerships for Financial Inclusion
+- International Technology Advisory Panel (ITAP)
+
+Recent developments:
+
+March 2026: MAS Partners Industry to Develop AI Risk Management Toolkit for the Financial Sector. MAS announced the successful conclusion of phase two of Project MindForge, publishing an AI Risk Management Toolkit for the financial services sector.
+
+November 2025: Singapore FinTech Festival 2025 wrapped up its 10th edition, marking a decade of global collaboration and innovation aimed at building a more open, connected and inclusive financial ecosystem.
+
+November 2025: MAS and UK FCA announced partnership on AI-in-Finance to support safe and responsible AI innovation, enabling AI-in-Finance solution providers in Singapore and AI innovators in the UK to scale and operate across both markets.
+
+November 2025: MAS and OJK deepened collaboration in FinTech and digital financial assets by signing a Memorandum of Understanding on Cooperation in Financial Technology.
