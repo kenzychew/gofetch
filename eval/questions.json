@@ -1,122 +1,206 @@
 [
     {
-        "question": "What is the computational complexity of self-attention?",
-        "expected_source": "attention-is-all-you-need.pdf",
-        "expected_keywords": ["quadratic", "O(n^2)", "sequence length"],
+        "question": "What are the CPF contribution rates for employees aged 55 and below?",
+        "expected_source": "cpf-overview.txt",
+        "expected_keywords": ["17", "20", "37", "employer", "employee"],
         "category": "factual"
     },
     {
-        "question": "How does the Transformer model use positional encoding?",
-        "expected_source": "attention-is-all-you-need.pdf",
-        "expected_keywords": ["sinusoidal", "position", "sine", "cosine"],
+        "question": "What are the three CPF accounts that working Singaporeans contribute to?",
+        "expected_source": "cpf-overview.txt",
+        "expected_keywords": ["Ordinary Account", "MediSave Account", "Special Account"],
         "category": "factual"
     },
     {
-        "question": "What is multi-head attention and why is it beneficial?",
-        "expected_source": "attention-is-all-you-need.pdf",
-        "expected_keywords": ["parallel", "heads", "subspaces", "jointly attend"],
+        "question": "What interest rate can CPF members below 55 earn on their savings?",
+        "expected_source": "cpf-overview.txt",
+        "expected_keywords": ["5%", "interest", "per annum"],
         "category": "factual"
     },
     {
-        "question": "How does scaled dot-product attention work?",
-        "expected_source": "attention-is-all-you-need.pdf",
-        "expected_keywords": ["query", "key", "value", "softmax", "scaling"],
+        "question": "What is the Matched Retirement Savings Scheme and how much does the government match?",
+        "expected_source": "cpf-overview.txt",
+        "expected_keywords": ["MRSS", "match", "$2,000", "cash top-ups"],
         "category": "factual"
     },
     {
-        "question": "What is Retrieval-Augmented Generation?",
-        "expected_source": "rag-paper.pdf",
-        "expected_keywords": ["retrieval", "generation", "knowledge", "non-parametric"],
+        "question": "What can CPF Ordinary Account savings be used for when buying a home?",
+        "expected_source": "cpf-housing-scheme.txt",
+        "expected_keywords": ["downpayment", "housing loan", "stamp", "legal fees", "HDB"],
         "category": "factual"
     },
     {
-        "question": "How does RAG combine retrieval with generation?",
-        "expected_source": "rag-paper.pdf",
-        "expected_keywords": ["retriever", "generator", "marginalize", "documents"],
+        "question": "How much OA savings should be retained at the point of home purchase?",
+        "expected_source": "cpf-housing-scheme.txt",
+        "expected_keywords": ["$20,000", "emergency", "monthly housing instalment"],
         "category": "factual"
     },
     {
-        "question": "What retriever does the RAG paper use?",
-        "expected_source": "rag-paper.pdf",
-        "expected_keywords": ["DPR", "dense passage retrieval", "BERT"],
+        "question": "What happens to CPF savings used for a property when you sell it?",
+        "expected_source": "cpf-housing-scheme.txt",
+        "expected_keywords": ["refund", "interest", "accrued", "retirement savings"],
         "category": "factual"
     },
     {
-        "question": "How does BERT's masked language modeling work?",
-        "expected_source": "bert-paper.pdf",
-        "expected_keywords": ["mask", "token", "predict", "bidirectional"],
+        "question": "At what age can CPF members start making retirement withdrawals?",
+        "expected_source": "cpf-retirement-withdrawals.txt",
+        "expected_keywords": ["55", "age", "withdraw"],
         "category": "factual"
     },
     {
-        "question": "What is the difference between BERT's pre-training objectives?",
-        "expected_source": "bert-paper.pdf",
-        "expected_keywords": ["MLM", "NSP", "masked", "next sentence"],
+        "question": "What is the maximum online Daily Withdrawal Limit for CPF?",
+        "expected_source": "cpf-retirement-withdrawals.txt",
+        "expected_keywords": ["$50,000", "Daily Withdrawal Limit", "DWL"],
         "category": "factual"
     },
     {
-        "question": "Compare the attention mechanism in Transformers with the retrieval approach in RAG",
+        "question": "How much can members who have not met the Full Retirement Sum withdraw at age 55?",
+        "expected_source": "cpf-retirement-withdrawals.txt",
+        "expected_keywords": ["$5,000", "age 55", "Full Retirement Sum"],
+        "category": "factual"
+    },
+    {
+        "question": "What healthcare schemes does MediSave cover for outpatient treatment?",
+        "expected_source": "cpf-healthcare-financing.txt",
+        "expected_keywords": ["diabetes", "hypertension", "vaccinations", "health screenings", "dialysis"],
+        "category": "factual"
+    },
+    {
+        "question": "What is CareShield Life and what does it provide?",
+        "expected_source": "cpf-healthcare-financing.txt",
+        "expected_keywords": ["long-term care", "monthly cash payouts", "severe disability", "Activities of Daily Living"],
+        "category": "factual"
+    },
+    {
+        "question": "How much can ElderShield pay out per month and for how long?",
+        "expected_source": "cpf-healthcare-financing.txt",
+        "expected_keywords": ["$400", "six years", "severe disability"],
+        "category": "factual"
+    },
+    {
+        "question": "What is the HDB Flat Eligibility letter and how long is it valid?",
+        "expected_source": "hdb-hfe-letter.txt",
+        "expected_keywords": ["HFE", "9 months", "eligibility", "Singpass"],
+        "category": "factual"
+    },
+    {
+        "question": "What must buyers have before applying for a new HDB flat?",
+        "expected_source": "hdb-hfe-letter.txt",
+        "expected_keywords": ["HFE letter", "valid", "apply"],
+        "category": "factual"
+    },
+    {
+        "question": "What is the income ceiling for a 4-room or 5-room BTO flat for couples?",
+        "expected_source": "hdb-eligibility-couples-families.txt",
+        "expected_keywords": ["$14,000", "income ceiling"],
+        "category": "factual"
+    },
+    {
+        "question": "What is the minimum age to apply for an HDB flat as a couple?",
+        "expected_source": "hdb-eligibility-couples-families.txt",
+        "expected_keywords": ["21", "years old"],
+        "category": "factual"
+    },
+    {
+        "question": "How long must SPR households have held their status to buy a resale flat?",
+        "expected_source": "hdb-eligibility-couples-families.txt",
+        "expected_keywords": ["3 years", "SPR", "Permanent Resident"],
+        "category": "factual"
+    },
+    {
+        "question": "What should buyers include when estimating their housing budget?",
+        "expected_source": "hdb-budget-for-flat.txt",
+        "expected_keywords": ["cash savings", "CPF", "housing grants", "housing loan"],
+        "category": "factual"
+    },
+    {
+        "question": "What are the three sandbox options offered by MAS for fintech experimentation?",
+        "expected_source": "mas-fintech-sandbox.txt",
+        "expected_keywords": ["Sandbox", "Sandbox Express", "Sandbox Plus"],
+        "category": "factual"
+    },
+    {
+        "question": "What penalty can financial institutions face for failing to comply with AML/CFT requirements?",
+        "expected_source": "mas-anti-money-laundering.txt",
+        "expected_keywords": ["$1 million", "fine", "$100,000", "continuing offence"],
+        "category": "factual"
+    },
+    {
+        "question": "What is COSMIC and what does it do?",
+        "expected_source": "mas-anti-money-laundering.txt",
+        "expected_keywords": ["COllaborative Sharing", "ML/TF", "financial institutions", "red flags"],
+        "category": "factual"
+    },
+    {
+        "question": "How many fintech firms operate in Singapore according to MAS?",
+        "expected_source": "mas-fintech-innovation.txt",
+        "expected_keywords": ["1,300", "FinTech firms"],
+        "category": "factual"
+    },
+    {
+        "question": "What types of deposit-taking institutions operate in Singapore?",
+        "expected_source": "mas-banking-regulation.txt",
+        "expected_keywords": ["full banks", "wholesale banks", "merchant banks", "finance companies"],
+        "category": "factual"
+    },
+    {
+        "question": "How do CPF savings interact with HDB flat eligibility and housing loans?",
         "expected_source": "multiple",
-        "expected_keywords": ["attention", "retrieval", "Transformer", "RAG"],
+        "expected_keywords": ["OA savings", "housing loan", "HFE letter", "eligibility"],
         "category": "comparison"
     },
     {
-        "question": "How do positional encodings relate to sequence order in both Transformers and BERT?",
+        "question": "Compare the healthcare financing options available through CPF and MediSave with HDB-related financial planning.",
         "expected_source": "multiple",
-        "expected_keywords": ["position", "encoding", "sequence", "order"],
+        "expected_keywords": ["MediSave", "MediShield", "housing budget", "CPF"],
         "category": "comparison"
     },
     {
-        "question": "What are alternatives to self-attention for sequence modeling?",
-        "expected_source": "attention-is-all-you-need.pdf",
-        "expected_keywords": ["recurrent", "convolutional", "attention"],
-        "category": "conceptual"
+        "question": "How do MAS banking regulations and fintech sandbox rules differ in their approach to financial innovation?",
+        "expected_source": "multiple",
+        "expected_keywords": ["sandbox", "banking", "regulation", "innovation", "licence"],
+        "category": "comparison"
     },
     {
-        "question": "What is the training cost of GPT-4?",
+        "question": "What is the relationship between CPF contribution rates, retirement withdrawals, and housing usage?",
+        "expected_source": "multiple",
+        "expected_keywords": ["contribution", "withdrawal", "housing", "retirement"],
+        "category": "comparison"
+    },
+    {
+        "question": "How does Singapore's anti-money laundering framework affect fintech sandbox participants?",
+        "expected_source": "multiple",
+        "expected_keywords": ["AML", "CFT", "sandbox", "compliance", "financial institutions"],
+        "category": "comparison"
+    },
+    {
+        "question": "What is the current GST rate in Singapore for 2026?",
         "expected_source": "none",
         "expected_keywords": [],
         "category": "unanswerable"
     },
     {
-        "question": "What programming language was Transformer implemented in?",
+        "question": "How do I apply for a Singapore work visa or Employment Pass?",
         "expected_source": "none",
         "expected_keywords": [],
         "category": "unanswerable"
     },
     {
-        "question": "What are the key differences between RAG-Sequence and RAG-Token models?",
-        "expected_source": "rag-paper.pdf",
-        "expected_keywords": ["sequence", "token", "marginalize", "per-token"],
-        "category": "factual"
+        "question": "What are the penalties for traffic violations in Singapore?",
+        "expected_source": "none",
+        "expected_keywords": [],
+        "category": "unanswerable"
     },
     {
-        "question": "How does the feed-forward network in Transformers process attention outputs?",
-        "expected_source": "attention-is-all-you-need.pdf",
-        "expected_keywords": ["feed-forward", "ReLU", "linear", "dimensions"],
-        "category": "factual"
+        "question": "What is Singapore's foreign policy on ASEAN trade agreements?",
+        "expected_source": "none",
+        "expected_keywords": [],
+        "category": "unanswerable"
     },
     {
-        "question": "What datasets were used to evaluate the original Transformer model?",
-        "expected_source": "attention-is-all-you-need.pdf",
-        "expected_keywords": ["WMT", "translation", "English", "German", "French"],
-        "category": "factual"
-    },
-    {
-        "question": "How does BERT handle fine-tuning for downstream tasks?",
-        "expected_source": "bert-paper.pdf",
-        "expected_keywords": ["fine-tune", "task-specific", "classification", "output layer"],
-        "category": "factual"
-    },
-    {
-        "question": "What is the relationship between attention mechanisms and memory networks?",
-        "expected_source": "multiple",
-        "expected_keywords": ["memory", "attention", "access", "read"],
-        "category": "conceptual"
-    },
-    {
-        "question": "How many parameters does the Transformer base model have?",
-        "expected_source": "attention-is-all-you-need.pdf",
-        "expected_keywords": ["65", "million", "parameters", "base"],
-        "category": "factual"
+        "question": "How does the Singapore school system work from primary to university?",
+        "expected_source": "none",
+        "expected_keywords": [],
+        "category": "unanswerable"
     }
 ]
