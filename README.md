@@ -114,3 +114,20 @@ uv run python eval/evaluate.py
 ```
 
 Runs a 4-way retrieval ablation (dense only, BM25 only, hybrid, hybrid + rerank) and prints a metrics table.
+
+### Evaluation results
+
+Retrieval ablation on 14 documents (11 Singapore gov + 3 ML papers), 24 factual questions scored:
+
+| Configuration     | Hit@1 | Hit@3 | Hit@5 |  MRR  | KW Recall |
+|-------------------|-------|-------|-------|-------|-----------|
+| Dense only        | 0.958 | 0.958 | 1.000 | 0.969 |   0.805   |
+| BM25 only         | 0.833 | 0.958 | 1.000 | 0.897 |   0.834   |
+| Hybrid (RRF)      | 0.917 | 1.000 | 1.000 | 0.951 |   0.857   |
+| Hybrid + Rerank   | 0.917 | 1.000 | 1.000 | 0.958 |   0.878   |
+
+Key takeaways:
+- Dense retrieval achieves the highest Hit@1 (0.958) but lowest keyword recall (0.805)
+- BM25 captures more keywords but misses semantic matches at rank 1
+- Hybrid search (RRF) achieves perfect Hit@3 and Hit@5, combining both signals
+- Cross-encoder reranking improves MRR and keyword recall over hybrid alone
