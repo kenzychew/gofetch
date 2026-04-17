@@ -1,5 +1,7 @@
 """Dense vector retrieval using PostgreSQL with pgvector."""
 
+import json
+
 import asyncpg
 import numpy as np
 
@@ -84,7 +86,13 @@ class DenseRetriever(BaseRetriever):
 
             results: list[RetrievalResult] = []
             for rank, row in enumerate(rows, start=1):
-                metadata = dict(row["metadata"]) if row["metadata"] else {}
+                raw_meta = row["metadata"]
+                if isinstance(raw_meta, dict):
+                    metadata = raw_meta
+                elif isinstance(raw_meta, str):
+                    metadata = json.loads(raw_meta) if raw_meta else {}
+                else:
+                    metadata = {}
                 chunk = Chunk(
                     chunk_id=row["chunk_id"],
                     text=row["text"],
