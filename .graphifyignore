@@ -1,0 +1,5 @@
+temp/
+graphify-out/
+bm25_index/
+graph_data/
+data/
