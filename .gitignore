@@ -49,6 +49,15 @@ logs/
 .DS_Store
 Thumbs.db
 
+# Claude Code
+.claude/
+
+# Obsidian
+.obsidian/
+
+# Graphify output
+graphify-out/
+
 # Coverage
 htmlcov/
 .coverage
