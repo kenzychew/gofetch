@@ -74,7 +74,9 @@ async def extract_entities_and_relationships(
             contents=prompt,
             config=types.GenerateContentConfig(
                 temperature=0.0,
-                max_output_tokens=2048,
+                max_output_tokens=4096,
+                response_mime_type="application/json",
+                thinking_config=types.ThinkingConfig(thinking_budget=0),
             ),
         )
     except Exception as exc:
@@ -85,15 +87,8 @@ async def extract_entities_and_relationships(
         logger.warning("Empty extraction response", chunks=len(chunks))
         return [], []
 
-    # Strip markdown code fences if present (Gemini wraps JSON in ```json ... ```)
-    cleaned = content.strip()
-    if "```" in cleaned:
-        lines = cleaned.split("\n")
-        lines = [line for line in lines if not line.strip().startswith("```")]
-        cleaned = "\n".join(lines).strip()
-
     try:
-        data = json.loads(cleaned)
+        data = json.loads(content)
     except json.JSONDecodeError:
         logger.warning("Failed to parse extraction JSON, skipping batch", preview=content[:200])
         return [], []
