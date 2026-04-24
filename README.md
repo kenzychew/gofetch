@@ -65,10 +65,11 @@ tests/                   # pytest suite
 
 ### Quick start
 
-1. Clone the repo and create your `.env`:
+1. Authenticate with Google Cloud and create your `.env`:
    ```bash
+   gcloud auth application-default login
    cp .env.example .env
-   # Edit .env and set your GCP_PROJECT and GCP_REGION
+   # Edit .env: set GOOGLE_ADC_PATH to your ADC credentials file
    ```
 
 2. Start everything:
@@ -119,15 +120,39 @@ Runs a 4-way retrieval ablation (dense only, BM25 only, hybrid, hybrid + rerank)
 
 Retrieval ablation on 14 documents (11 Singapore gov + 3 ML papers), 24 factual questions scored:
 
-| Configuration     | Hit@1 | Hit@3 | Hit@5 |  MRR  | KW Recall |
-|-------------------|-------|-------|-------|-------|-----------|
-| Dense only        | 0.958 | 0.958 | 1.000 | 0.969 |   0.805   |
-| BM25 only         | 0.833 | 0.958 | 1.000 | 0.897 |   0.834   |
-| Hybrid (RRF)      | 0.917 | 1.000 | 1.000 | 0.951 |   0.857   |
-| Hybrid + Rerank   | 0.917 | 1.000 | 1.000 | 0.958 |   0.878   |
+| Configuration | Hit@1 | Hit@3 | Hit@5 | MRR | KW Recall |
+| --- | --- | --- | --- | --- | --- |
+| Dense only | 0.958 | 0.958 | 1.000 | 0.969 | 0.805 |
+| BM25 only | 0.833 | 0.958 | 1.000 | 0.897 | 0.834 |
+| Hybrid (RRF) | 0.917 | 1.000 | 1.000 | 0.951 | 0.857 |
+| Hybrid + Rerank | 0.917 | 1.000 | 1.000 | 0.958 | 0.878 |
 
 Key takeaways:
 - Dense retrieval achieves the highest Hit@1 (0.958) but lowest keyword recall (0.805)
 - BM25 captures more keywords but misses semantic matches at rank 1
 - Hybrid search (RRF) achieves perfect Hit@3 and Hit@5, combining both signals
 - Cross-encoder reranking improves MRR and keyword recall over hybrid alone
+
+### Chunk size comparison
+
+Hybrid + Rerank results at two chunk sizes (same corpus, same questions):
+
+| Chunk size | Chunks | Hit@1 | Hit@3 | Hit@5 | MRR | KW Recall |
+| --- | --- | --- | --- | --- | --- | --- |
+| 512 | 512 | 0.917 | 1.000 | 1.000 | 0.958 | 0.878 |
+| 256 | 1,079 | 0.917 | 1.000 | 1.000 | 0.958 | 0.788 |
+
+Both chunk sizes hit identical rates and MRR. The 512-size chunks score higher on keyword recall (0.878 vs 0.788) because each chunk contains more text, so expected keywords are more likely to co-occur in the top results. Smaller chunks give finer-grained retrieval but need more of them to cover the same keywords.
+
+### Knowledge graph
+
+During ingestion, Gemini extracts entities and relationships from each chunk to build a knowledge graph (NetworkX). The graph augments retrieval by surfacing related context that keyword and vector search might miss.
+
+Current corpus stats (14 documents):
+
+| Metric | Count |
+| --- | --- |
+| Entities | 2,825 |
+| Relationships | 3,814 |
+
+Entity types: concept (1,224), person (582), technique (301), model (185), dataset (111), organization (104), metric (71), other (47)
