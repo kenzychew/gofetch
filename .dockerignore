@@ -24,3 +24,5 @@ notebooks/
 .vscode/
 wandb/
 mlruns/
+eval/
+graphify-out/

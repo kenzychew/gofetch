@@ -2,65 +2,65 @@
   "per_question": [
     {
       "question": "What are the CPF contribution rates for employees aged 55 and below?",
-      "answer": "For employees aged 55 and below, the CPF contribution rate is 17% of their wage by the employer and 20% of their wage by the employee, making a total of 37% of the wage [5].",
+      "answer": "For employees aged 55 and below, the CPF contribution rates are 17% of wages by the employer and 20% of wages by the employee, making a total of 37% of wages [5]. These rates are effective from 1 January 2026 for monthly wages greater than $750 [1].",
       "faithfulness_score": 5,
-      "faithfulness_reasoning": "Every claim in the answer, including the specific percentages for employer, employee, and total contributions for employees aged 55 and below, is directly supported by source [5] in the provided context.",
+      "faithfulness_reasoning": "Every claim in the answer is directly supported by the provided context, with specific details matching sources [1] and [5].",
       "relevancy_score": 5,
-      "relevancy_reasoning": "The answer fully and accurately provides both the employer and employee CPF contribution rates for the specified age group, along with the total."
+      "relevancy_reasoning": "The answer fully and accurately provides the CPF contribution rates for employees aged 55 and below, including employer, employee, and total percentages, along with relevant effective dates and wage thresholds."
     },
     {
       "question": "What are the three CPF accounts that working Singaporeans contribute to?",
-      "answer": "Working Singaporeans contribute to three CPF accounts: Ordinary Account (OA), MediSave Account (MA), and Special Account (SA) [1].",
+      "answer": "Working Singaporeans contribute to three accounts: their Ordinary Account (OA), MediSave Account (MA), and Special Account (SA) [1].",
       "faithfulness_score": 5,
-      "faithfulness_reasoning": "Every claim in the answer is directly supported by source [1] from the provided context.",
+      "faithfulness_reasoning": "Every claim in the answer, including the specific accounts mentioned, is directly and explicitly supported by source [1] in the provided context.",
       "relevancy_score": 5,
-      "relevancy_reasoning": "The answer directly and accurately lists the three CPF accounts that working Singaporeans contribute to, fully addressing the question with specific detail."
+      "relevancy_reasoning": "The answer correctly and completely identifies all three CPF accounts that working Singaporeans contribute to."
     },
     {
       "question": "What interest rate can CPF members below 55 earn on their savings?",
       "answer": "CPF members below 55 can earn interest of up to 5% per annum on their savings [1].",
       "faithfulness_score": 5,
-      "faithfulness_reasoning": "The answer directly states that CPF members below 55 can earn up to 5% interest per annum, which is explicitly supported by Source [1].",
+      "faithfulness_reasoning": "The answer's claim that CPF members below 55 can earn up to 5% interest per annum is directly stated in Source [1].",
       "relevancy_score": 5,
-      "relevancy_reasoning": "The answer directly and accurately states the interest rate CPF members below 55 can earn on their savings, fully addressing the question."
+      "relevancy_reasoning": "The answer directly and specifically states the interest rate CPF members below 55 can earn on their savings, which is 'up to 5% per annum'."
     },
     {
       "question": "What is the Matched Retirement Savings Scheme and how much does the government match?",
-      "answer": "The Matched Retirement Savings Scheme (MRSS) allows individuals aged 55 or older who have not yet met the current Basic Retirement Sum (BRS) to make cash top-ups to receive higher retirement payouts [1]. The provided context does not specify how much the government matches under this scheme.",
+      "answer": "The Matched Retirement Savings Scheme (MRSS) is for individuals aged 55 or older who have not yet met the current Basic Retirement Sum (BRS). Under this scheme, eligible individuals can make cash top-ups to achieve higher retirement payouts [1]. The provided context does not specify how much the government matches for this scheme.",
       "faithfulness_score": 5,
-      "faithfulness_reasoning": "Every claim in the answer is directly supported by the context, including the statement that the context does not specify the matching amount.",
+      "faithfulness_reasoning": "Every claim in the answer is directly supported by the provided context, and the statement about missing information is also accurate based on the context.",
       "relevancy_score": 3,
-      "relevancy_reasoning": "The answer accurately describes what the Matched Retirement Savings Scheme is but explicitly states it cannot provide the government's matching amount, which is a key part of the question."
+      "relevancy_reasoning": "The answer accurately describes what the Matched Retirement Savings Scheme is but explicitly states it cannot provide the amount the government matches, which is a key part of the question."
     },
     {
       "question": "What can CPF Ordinary Account savings be used for when buying a home?",
-      "answer": "CPF Ordinary Account (OA) savings can be used to pay the downpayment or initial payment when buying a home [1]. These savings are also considered part of your available funds when calculating an estimated housing budget [4].",
+      "answer": "You may use your available CPF Ordinary Account (OA) savings to pay the downpayment or initial payment when buying a home [1]. OA savings are also considered when working out an estimated housing budget [4].",
       "faithfulness_score": 5,
-      "faithfulness_reasoning": "Every claim in the answer is directly supported by the provided context, with specific sources cited for each point.",
+      "faithfulness_reasoning": "Every claim in the answer is directly supported by the provided context, with specific references to sources [1] and [4].",
       "relevancy_score": 3,
-      "relevancy_reasoning": "The answer correctly identifies that CPF OA savings can be used for the downpayment, but it misses other significant uses such as monthly mortgage installments, stamp duties, and legal fees."
+      "relevancy_reasoning": "The answer correctly identifies that OA savings can be used for the downpayment or initial payment, but it misses other key uses such as monthly mortgage installments, stamp duties, and legal fees."
     },
     {
       "question": "How much OA savings should be retained at the point of home purchase?",
-      "answer": "You can retain $20,000 of your OA savings at the point of home purchase to cover monthly housing installments during times of need [1]. This amount can also serve as an emergency fund and help prepare for retirement [1].",
+      "answer": "You can retain $20,000 of your OA savings at the point of home purchase to cover monthly housing installments in times of need [1].",
       "faithfulness_score": 5,
-      "faithfulness_reasoning": "Every claim in the answer is directly supported by the provided context, specifically source [1].",
+      "faithfulness_reasoning": "The answer directly states information found verbatim in source [1], indicating full support from the context.",
       "relevancy_score": 5,
-      "relevancy_reasoning": "The answer directly and specifically states the amount of OA savings that can be retained at the point of home purchase, fully addressing the question."
+      "relevancy_reasoning": "The answer directly and specifically states the exact amount of OA savings that can be retained at the point of home purchase, fully addressing the question."
     },
     {
       "question": "What happens to CPF savings used for a property when you sell it?",
-      "answer": "When you sell your property, you will need to refund to your CPF account [3]. The amount you need to refund affects the cash proceeds you receive from the sale [3].",
+      "answer": "When you sell your property, you will need to refund to your CPF account [3]. Making an earlier voluntary refund can result in more cash proceeds from the sale, as you will need to refund less to your CPF account [3].",
       "faithfulness_score": 5,
-      "faithfulness_reasoning": "Every claim in the answer is directly and explicitly supported by the provided context, specifically source [3].",
+      "faithfulness_reasoning": "Every claim in the answer is directly supported by the provided context, specifically source [3].",
       "relevancy_score": 4,
-      "relevancy_reasoning": "The answer correctly states that CPF savings must be refunded to the CPF account upon sale and that this affects cash proceeds, but it lacks specific details about accrued interest or the different CPF accounts involved."
+      "relevancy_reasoning": "The answer correctly states that CPF savings used for a property must be refunded to the CPF account upon sale, but it could be more specific about the amount to be refunded (e.g., principal plus accrued interest)."
     },
     {
       "question": "At what age can CPF members start making retirement withdrawals?",
       "answer": "CPF members can start making retirement withdrawals from age 55 [1][2][3].",
       "faithfulness_score": 5,
-      "faithfulness_reasoning": "The answer directly states that CPF members can start making retirement withdrawals from age 55, which is explicitly supported by sources [1], [2], and [3].",
+      "faithfulness_reasoning": "The answer directly states that CPF members can start making retirement withdrawals from age 55, which is explicitly supported by multiple context snippets.",
       "relevancy_score": 5,
       "relevancy_reasoning": "The answer directly and accurately states the age at which CPF members can start making retirement withdrawals, fully addressing the question."
     },
@@ -70,7 +70,7 @@
       "faithfulness_score": 5,
       "faithfulness_reasoning": "The answer directly states the maximum online Daily Withdrawal Limit (DWL) as $50,000, which is explicitly supported by both source [1] and source [2].",
       "relevancy_score": 5,
-      "relevancy_reasoning": "The answer directly and accurately provides the specific maximum online Daily Withdrawal Limit for CPF as requested by the question."
+      "relevancy_reasoning": "The answer directly and completely states the maximum online Daily Withdrawal Limit for CPF as requested by the question."
     },
     {
       "question": "How much can members who have not met the Full Retirement Sum withdraw at age 55?",
@@ -78,15 +78,15 @@
       "faithfulness_score": 5,
       "faithfulness_reasoning": "Every claim in the answer is directly supported by context [1], which states that members who have not met the Full Retirement Sum can withdraw $5,000 or more from their CPF savings once they reach age 55.",
       "relevancy_score": 5,
-      "relevancy_reasoning": "The answer directly and specifically states the minimum amount that can be withdrawn by members who have not met the Full Retirement Sum at age 55."
+      "relevancy_reasoning": "The answer directly states the specific amount ($5,000 or more) that can be withdrawn by members who have not met the Full Retirement Sum at age 55, fully addressing the question with detail."
     },
     {
       "question": "What healthcare schemes does MediSave cover for outpatient treatment?",
-      "answer": "MediSave covers outpatient treatments through schemes such as MediSave500/700 and Flexi-MediSave [1].",
+      "answer": "MediSave covers a broad range of outpatient treatments through schemes such as MediSave500/700 and Flexi-MediSave [1].",
       "faithfulness_score": 5,
-      "faithfulness_reasoning": "The answer is directly and entirely supported by the first context snippet provided.",
+      "faithfulness_reasoning": "The answer is directly and entirely supported by the provided context, specifically source [1].",
       "relevancy_score": 5,
-      "relevancy_reasoning": "The answer directly and specifically lists the healthcare schemes MediSave covers for outpatient treatment, fully addressing the question."
+      "relevancy_reasoning": "The answer directly names the specific MediSave schemes, MediSave500/700 and Flexi-MediSave, that cover outpatient treatment, fully addressing the question."
     },
     {
       "question": "What is CareShield Life and what does it provide?",
@@ -94,7 +94,7 @@
       "faithfulness_score": 5,
       "faithfulness_reasoning": "Every claim in the answer is directly and explicitly supported by the provided context, with accurate source attribution.",
       "relevancy_score": 5,
-      "relevancy_reasoning": "The answer fully defines CareShield Life as long-term care insurance and clearly explains what it provides (monthly cash payouts for severe disability based on ADLs)."
+      "relevancy_reasoning": "The answer fully defines CareShield Life as a long-term care insurance and clearly explains what it provides (monthly cash payouts for severe disability, defined by inability to perform 3 or more ADLs) with specific detail."
     },
     {
       "question": "How much can ElderShield pay out per month and for how long?",
@@ -102,100 +102,100 @@
       "faithfulness_score": 5,
       "faithfulness_reasoning": "Every claim in the answer is directly supported by the provided context, specifically source [1].",
       "relevancy_score": 5,
-      "relevancy_reasoning": "The answer directly and completely addresses both parts of the question by stating the maximum monthly payout and the maximum duration."
+      "relevancy_reasoning": "The answer directly and completely addresses both parts of the question, specifying the monthly payout amount and the duration."
     },
     {
       "question": "What is the HDB Flat Eligibility letter and how long is it valid?",
-      "answer": "The HDB Flat Eligibility (HFE) letter helps you understand your eligibility to buy a new or resale flat, the amount of CPF housing grants, and the HDB housing loan you are eligible for [3][4]. It provides a holistic understanding of your housing and financing options before you begin your home buying journey [4]. The HFE letter is valid for 9 months from its date of issue [1].",
+      "answer": "The HDB Flat Eligibility (HFE) letter helps individuals find out their eligibility to buy a new or resale flat, the amount of CPF housing grants, and the HDB housing loan they are eligible for [3]. It also provides a holistic understanding of housing and financing options [4]. The HFE letter is valid for 9 months from its issue date [1].",
       "faithfulness_score": 5,
-      "faithfulness_reasoning": "Every claim in the answer is directly and accurately supported by the provided context, with correct source citations.",
+      "faithfulness_reasoning": "Every claim in the answer is directly supported by the provided context, with specific source references matching the information.",
       "relevancy_score": 5,
-      "relevancy_reasoning": "The answer fully explains what the HDB Flat Eligibility letter is and explicitly states its validity period, directly addressing both parts of the question with specific detail."
+      "relevancy_reasoning": "The answer fully explains what the HDB Flat Eligibility letter is and accurately states its validity period."
     },
     {
       "question": "What must buyers have before applying for a new HDB flat?",
-      "answer": "Buyers must have a valid HDB Flat Eligibility (HFE) letter when they apply to buy a new flat from HDB [1]. It is recommended to apply for the HFE letter before starting the home buying journey to understand eligibility for a new or resale flat, as well as the amount of CPF housing grants and HDB housing loan they are eligible for [3][4][5].",
+      "answer": "Buyers must have a valid HFE letter when they apply to buy a new flat from HDB [1].",
       "faithfulness_score": 5,
-      "faithfulness_reasoning": "Every claim in the answer is directly supported by the provided context, with specific source citations matching the information.",
+      "faithfulness_reasoning": "The answer is directly and completely supported by source [1] in the provided context.",
       "relevancy_score": 5,
-      "relevancy_reasoning": "The answer directly and clearly states that buyers must have a valid HDB Flat Eligibility (HFE) letter before applying for a new HDB flat, fully addressing the question."
+      "relevancy_reasoning": "The answer directly and completely states the specific document buyers must have before applying for a new HDB flat."
     },
     {
       "question": "What is the income ceiling for a 4-room or 5-room BTO flat for couples?",
-      "answer": "The income ceiling for a 4- and 5-room flat is $14,000 [1]. If buying with an extended or multi-generation family, the income ceiling is $21,000 [1].",
+      "answer": "The income ceiling for a 4- and 5-room flat is $14,000 [1]. This ceiling can be $21,000 if the flat is being purchased with an extended or multi-generation family [1].",
       "faithfulness_score": 5,
       "faithfulness_reasoning": "Every claim in the answer is directly supported by the provided context, specifically source [1].",
       "relevancy_score": 5,
-      "relevancy_reasoning": "The answer directly and accurately provides the income ceiling for a 4-room or 5-room BTO flat, which is applicable to couples."
+      "relevancy_reasoning": "The answer directly provides the income ceiling for 4-room and 5-room BTO flats, which applies to couples, and includes a relevant exception."
     },
     {
       "question": "What is the minimum age to apply for an HDB flat as a couple?",
       "answer": "This information is not available in the provided context.",
       "faithfulness_score": 5,
-      "faithfulness_reasoning": "The answer states that the information is not available in the provided context. Assuming the RAG system correctly determined that the original query's answer was not present in the given context, this statement is accurate and fully supported by the context's inability to provide the specific information.",
+      "faithfulness_reasoning": "The answer states that the information is not available, and indeed, the provided context discusses the factors influencing HDB loan amounts and where to find them (HFE letter) but does not provide a specific, quantifiable maximum loan amount or prevailing loan-to-value limits.",
       "relevancy_score": 1,
-      "relevancy_reasoning": "The answer explicitly states that the information is not available, therefore it does not provide an answer to the question asked."
+      "relevancy_reasoning": "The answer explicitly states that the information is not available, therefore it does not provide the requested minimum age to apply for an HDB flat as a couple."
     },
     {
       "question": "How long must SPR households have held their status to buy a resale flat?",
       "answer": "For SPR households, all applicants and core occupiers must have held SPR status for at least 3 years to buy a resale unclassified/standard flat [1].",
       "faithfulness_score": 5,
-      "faithfulness_reasoning": "Every claim in the answer is directly and explicitly supported by the provided context, specifically source [1].",
+      "faithfulness_reasoning": "Every claim in the answer is directly supported by the provided context, specifically source [1].",
       "relevancy_score": 5,
-      "relevancy_reasoning": "The answer directly and specifically states the required duration of 'at least 3 years' for SPR households to buy a resale flat, fully addressing the question."
+      "relevancy_reasoning": "The answer directly and clearly states the required duration of 'at least 3 years' for SPR households to buy a resale flat, fully addressing the question with specific detail."
     },
     {
       "question": "What should buyers include when estimating their housing budget?",
-      "answer": "Buyers should include available cash savings, available CPF Ordinary Account (OA) savings (up to $20,000 per applicant), and probable CPF housing grants when estimating their housing budget [1].",
+      "answer": "When estimating their housing budget, buyers should include available cash savings, available CPF Ordinary Account (OA) savings (with each flat applicant retaining up to $20,000), and probable CPF housing grants [1].",
       "faithfulness_score": 5,
-      "faithfulness_reasoning": "Every claim in the answer is directly supported by the provided context, specifically source [1].",
-      "relevancy_score": 5,
-      "relevancy_reasoning": "The answer fully addresses the question by listing specific financial components buyers should include when estimating their housing budget."
+      "faithfulness_reasoning": "Every claim in the answer, including the components of the housing budget and the retention amount for CPF OA savings, is directly and explicitly supported by source [1].",
+      "relevancy_score": 3,
+      "relevancy_reasoning": "The answer correctly identifies key sources of funds (cash, CPF, grants) for a housing budget but omits other crucial components such as income, existing debts, other upfront costs (e.g., stamp duty, legal fees), and ongoing expenses (e.g., mortgage payments, property taxes, maintenance)."
     },
     {
       "question": "What are the three sandbox options offered by MAS for fintech experimentation?",
-      "answer": "The provided context only describes one sandbox option, simply called \"Sandbox,\" which is designed for more complex business models requiring customization to balance risks and benefits [1]. The context does not list three distinct sandbox options.",
+      "answer": "The provided context only describes one sandbox option, which is for more complex business models requiring customization to balance risks and benefits [1]. It does not list three distinct sandbox options.",
       "faithfulness_score": 5,
-      "faithfulness_reasoning": "Every claim in the answer is directly supported by the provided context, which explicitly describes only one sandbox option and its characteristics.",
-      "relevancy_score": 2,
-      "relevancy_reasoning": "The answer correctly states that the requested information (three sandbox options) is not present in the provided context, thus it does not directly answer the question by listing the options."
+      "faithfulness_reasoning": "Every claim in the answer is directly supported by the provided context, specifically by source [1].",
+      "relevancy_score": 5,
+      "relevancy_reasoning": "The answer directly addresses the question by stating that the context only provides one sandbox option instead of three, and accurately describes that single option, indicating the requested information is not fully available in the source."
     },
     {
       "question": "What penalty can financial institutions face for failing to comply with AML/CFT requirements?",
-      "answer": "Under the Financial Services and Markets Act 2022, a financial institution that fails to comply with requirements in an applicable AML/CFT Notice is guilty of an offence and can be liable on conviction to a fine not exceeding $1 million [1].",
+      "answer": "A financial institution that fails to comply with the requirements in an applicable AML/CFT Notice is guilty of an offence and can be liable on conviction to a fine not exceeding $1 million [1]. This is under the Financial Services and Markets Act 2022 [1].",
       "faithfulness_score": 5,
-      "faithfulness_reasoning": "Every claim in the answer is directly and explicitly supported by the provided context, specifically source [1].",
+      "faithfulness_reasoning": "Every claim in the answer is directly supported by source [1] of the provided context.",
       "relevancy_score": 5,
-      "relevancy_reasoning": "The answer directly and specifically states a monetary penalty and the relevant legal act for non-compliance with AML/CFT requirements."
+      "relevancy_reasoning": "The answer directly and specifically states a monetary penalty and the legal framework for non-compliance with AML/CFT requirements."
     },
     {
       "question": "What is COSMIC and what does it do?",
-      "answer": "COSMIC, which stands for COllaborative Sharing of ML/TF Information and Cases, is a digital platform [1]. Its purpose is for financial institutions to collaborate in detecting criminal activities [1]. It allows Financial Institutions (FIs) to securely share information on customers who exhibit multiple red flags that may indicate potential financial crime concerns, provided stipulated thresholds are met [2].",
+      "answer": "COSMIC (COllaborative Sharing of ML/TF Information and Cases) is a digital platform that enables financial institutions to collaborate in detecting criminal activities [1]. It allows these institutions to securely share information about customers who show multiple red flags indicating potential financial crime concerns, provided certain thresholds are met [2].",
       "faithfulness_score": 5,
-      "faithfulness_reasoning": "Every claim in the answer is directly supported by the provided context, with specific source references for each piece of information.",
+      "faithfulness_reasoning": "Every claim in the answer is directly supported by the provided context snippets [1] and [2].",
       "relevancy_score": 5,
-      "relevancy_reasoning": "The answer fully defines COSMIC, provides its acronym, and clearly explains its purpose and how it functions for financial institutions."
+      "relevancy_reasoning": "The answer fully defines COSMIC by providing its full name and purpose, and clearly explains its function with specific details about information sharing."
     },
     {
       "question": "How many fintech firms operate in Singapore according to MAS?",
       "answer": "There are over 1,300 FinTech firms in Singapore [1].",
       "faithfulness_score": 5,
-      "faithfulness_reasoning": "The answer directly states that there are over 1,300 FinTech firms in Singapore, which is explicitly supported by source [1] stating '1,300+ FinTech firms'.",
+      "faithfulness_reasoning": "The answer's claim that there are over 1,300 FinTech firms in Singapore is directly supported by source [1] which states '1,300+ FinTech firms'.",
       "relevancy_score": 4,
-      "relevancy_reasoning": "The answer provides a specific number of FinTech firms but does not explicitly state that this number is 'according to MAS' as requested by the question, which is a minor omission."
+      "relevancy_reasoning": "The answer provides the number of FinTech firms but does not explicitly state that this figure is 'according to MAS', which was a specific part of the question, leaving a minor gap in the attribution."
     },
     {
       "question": "What types of deposit-taking institutions operate in Singapore?",
-      "answer": "In Singapore, deposit-taking institutions operate as full banks, wholesale banks, merchant banks, or finance companies [1][2].",
+      "answer": "Deposit-taking institutions in Singapore operate as full banks, wholesale banks, merchant banks, or finance companies [1][2].",
       "faithfulness_score": 5,
-      "faithfulness_reasoning": "Every claim in the answer is directly supported by the provided context, specifically sources [1] and [2].",
+      "faithfulness_reasoning": "Every claim in the answer is directly supported by context snippets [1] and [2], which explicitly list the types of deposit-taking institutions in Singapore.",
       "relevancy_score": 5,
-      "relevancy_reasoning": "The answer directly and completely lists the types of deposit-taking institutions operating in Singapore as requested by the question."
+      "relevancy_reasoning": "The answer directly and completely lists the types of deposit-taking institutions operating in Singapore, fully addressing the question with specific detail."
     }
   ],
   "summary": {
     "avg_faithfulness": 5.0,
-    "avg_relevancy": 4.46,
+    "avg_relevancy": 4.5,
     "total_questions": 34,
     "scored_questions": 24
   }

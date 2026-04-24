@@ -9,6 +9,20 @@ services:
       POSTGRES_USER: gofetch
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
       POSTGRES_DB: gofetch
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gofetch -d gofetch"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+    networks:
+      - gofetch
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   backend:
     build:
@@ -24,12 +38,27 @@ services:
       GCP_REGION: "${GCP_REGION:-us-central1}"
       GOOGLE_APPLICATION_CREDENTIALS: "/app/.config/gcloud/application_default_credentials.json"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     volumes:
       - ./data:/app/data
       - bm25_index:/app/bm25_index
       - graph_data:/app/graph_data
       - ${GOOGLE_ADC_PATH}:/app/.config/gcloud/application_default_credentials.json:ro
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    networks:
+      - gofetch
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   frontend:
     build:
@@ -41,9 +70,28 @@ services:
     environment:
       BACKEND_URL: "http://backend:8000"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:7860/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
+    networks:
+      - gofetch
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 volumes:
   pgdata:
   bm25_index:
   graph_data:
+
+networks:
+  gofetch:
+    driver: bridge
