@@ -12,6 +12,7 @@ from google import genai
 from google.genai import types
 from omegaconf import OmegaConf
 from pgvector.asyncpg import register_vector
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 from src.config import (
     AppConfig,
@@ -21,7 +22,6 @@ from src.config import (
     RetrievalConfig,
 )
 from src.generation.prompt import PromptBuilder
-from src.generation.stream import generate_completion
 from src.ingestion.embedder import Embedder
 from src.ingestion.indexer import BM25Indexer
 from src.logging import get_logger, setup_logging
@@ -106,6 +106,14 @@ def load_questions(path: str = "eval/questions.json") -> list[dict[str, str | li
     return data
 
 
+RETRY_DECORATOR = retry(
+    wait=wait_exponential(multiplier=3, min=10, max=120),
+    stop=stop_after_attempt(6),
+    reraise=True,
+)
+
+
+@RETRY_DECORATOR
 async def generate_answer(
     question: str,
     results: list[RetrievalResult],
@@ -126,11 +134,29 @@ async def generate_answer(
         Tuple of (generated answer text, formatted context string).
     """
     messages = prompt_builder.build_messages(question, results)
-    answer = await generate_completion(messages, client, config)
+    system_msg = ""
+    user_msg = ""
+    for msg in messages:
+        if msg["role"] == "system":
+            system_msg = msg["content"]
+        elif msg["role"] == "user":
+            user_msg = msg["content"]
+    response = client.models.generate_content(
+        model=config.model,
+        contents=user_msg,
+        config=types.GenerateContentConfig(
+            system_instruction=system_msg if system_msg else None,
+            temperature=config.temperature,
+            max_output_tokens=config.max_tokens,
+            thinking_config=types.ThinkingConfig(thinking_budget=0),
+        ),
+    )
+    answer = response.text or ""
     context = prompt_builder.format_chunks(results)
     return answer, context
 
 
+@RETRY_DECORATOR
 async def judge_faithfulness(
     context: str,
     answer: str,
@@ -155,12 +181,19 @@ async def judge_faithfulness(
         config=types.GenerateContentConfig(
             temperature=0.0,
             response_mime_type="application/json",
+            thinking_config=types.ThinkingConfig(thinking_budget=0),
         ),
     )
-    result = json.loads(response.text or "{}")
+    raw = response.text or "{}"
+    try:
+        result = json.loads(raw)
+    except json.JSONDecodeError:
+        logger.warning("Failed to parse faithfulness JSON", raw=raw[:200])
+        return 0, "parse error"
     return int(result.get("score", 0)), str(result.get("reasoning", ""))
 
 
+@RETRY_DECORATOR
 async def judge_relevancy(
     question: str,
     answer: str,
@@ -185,9 +218,15 @@ async def judge_relevancy(
         config=types.GenerateContentConfig(
             temperature=0.0,
             response_mime_type="application/json",
+            thinking_config=types.ThinkingConfig(thinking_budget=0),
         ),
     )
-    result = json.loads(response.text or "{}")
+    raw = response.text or "{}"
+    try:
+        result = json.loads(raw)
+    except json.JSONDecodeError:
+        logger.warning("Failed to parse relevancy JSON", raw=raw[:200])
+        return 0, "parse error"
     return int(result.get("score", 0)), str(result.get("reasoning", ""))
 
 
@@ -296,8 +335,8 @@ async def evaluate_generation(
             relevancy=rel_score,
         )
 
-        # Rate-limit to avoid hitting Gemini quotas
-        await asyncio.sleep(0.5)
+        # Rate-limit to avoid hitting Gemini quotas (3 API calls per question)
+        await asyncio.sleep(10)
 
     await pool.close()
 

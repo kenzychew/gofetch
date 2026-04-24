@@ -144,6 +144,17 @@ Hybrid + Rerank results at two chunk sizes (same corpus, same questions):
 
 Both chunk sizes hit identical rates and MRR. The 512-size chunks score higher on keyword recall (0.878 vs 0.788) because each chunk contains more text, so expected keywords are more likely to co-occur in the top results. Smaller chunks give finer-grained retrieval but need more of them to cover the same keywords.
 
+### Generation quality (LLM-as-judge)
+
+End-to-end eval: retrieve (Hybrid + Rerank) then generate an answer with Gemini, then score with a separate Gemini judge on 1-5 scales. 24 answerable questions scored:
+
+| Metric | Avg score |
+| --- | --- |
+| Faithfulness (grounded in context) | 5.00 |
+| Relevancy (addresses the question) | 4.46 |
+
+Perfect faithfulness means the system never fabricates claims beyond retrieved context. Relevancy dips slightly on questions where the retrieved chunks partially address the question.
+
 ### Knowledge graph
 
 During ingestion, Gemini extracts entities and relationships from each chunk to build a knowledge graph (NetworkX). The graph augments retrieval by surfacing related context that keyword and vector search might miss.
