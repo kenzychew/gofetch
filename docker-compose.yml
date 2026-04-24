@@ -19,15 +19,17 @@ services:
     env_file:
       - .env
     environment:
-      DATABASE_URL: "postgresql://gofetch:changeme@postgres:5432/gofetch"
+      DATABASE_URL: "postgresql://gofetch:${POSTGRES_PASSWORD}@postgres:5432/gofetch"
       GCP_PROJECT: "${GCP_PROJECT:-gofetch-493315}"
       GCP_REGION: "${GCP_REGION:-us-central1}"
+      GOOGLE_APPLICATION_CREDENTIALS: "/app/.config/gcloud/application_default_credentials.json"
     depends_on:
       - postgres
     volumes:
       - ./data:/app/data
       - bm25_index:/app/bm25_index
       - graph_data:/app/graph_data
+      - ${GOOGLE_ADC_PATH}:/app/.config/gcloud/application_default_credentials.json:ro
 
   frontend:
     build:
