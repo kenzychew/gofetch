@@ -1,60 +1,94 @@
 # GoFetch
 
-RAG pipeline with hybrid search, re-ranking, and LLM-powered answer generation with inline citations.
+RAG pipeline built from scratch with hybrid search, cross-encoder re-ranking, knowledge graph, and streaming answers with inline citations.
 
-## What it does
+![GoFetch demo](docs/demo.png)
 
-Upload documents (PDF/text), ask questions in natural language, get answers grounded in your documents with source citations. The system combines three retrieval signals (keyword search, semantic vectors, knowledge graph), re-ranks candidates with a cross-encoder, and streams a cited answer via Gemini.
+## Motivation
+
+Before using LangChain or LlamaIndex I wanted to know what's actually happening inside a RAG system: how retrieval strategies compare, where re-ranking helps, and what it takes to keep an LLM grounded. This project is the result, a full pipeline from PDF ingestion to cited answers where every architecture choice is backed by an eval benchmark.
+
+The corpus is a mix of Singapore government documents (CPF, HDB, MAS) and ML research papers, different enough in style to stress-test retrieval across formal policy text and technical prose.
+
+## Architecture
+
+```
+Ingest:    PDF/text -> chunk (256 chars) -> embed -> pgvector + BM25 index + knowledge graph
+                                                      |            |              |
+Retrieve:  query -> parallel search --------> [dense] [sparse] [graph traversal]
+                                                      |            |              |
+                                                      +--- RRF fusion (k=60) ----+
+                                                                   |
+                                                      cross-encoder re-rank (top 5)
+                                                                   |
+Generate:  top chunks -> citation-aware prompt -> Gemini streaming -> [1][2] cited answer
+```
+
+### Hybrid search with RRF
+
+BM25 and dense retrieval return scores on completely different scales. BM25 gives unbounded term-frequency scores (8.3, 12.7) while cosine similarity is bounded 0-1. You can't just average them. Reciprocal Rank Fusion sidesteps this by ignoring scores and working with ranks: `RRF(doc) = 1/(k + rank_bm25) + 1/(k + rank_dense)`. Documents that both retrievers agree on naturally rise to the top, without needing to normalize anything.
+
+### Two-stage retrieval
+
+A bi-encoder (sentence-transformers) embeds the query and chunks independently. It's fast because chunk embeddings are pre-computed, so retrieval is just an ANN lookup. But the query and document never attend to each other, so it misses nuance. A cross-encoder (ms-marco) processes query+chunk as a single input, which is much more accurate but O(n) per candidate so it can't run on the full corpus.
+
+So both retrievers grab 20 candidates each, RRF fuses them down to 10, and the cross-encoder re-ranks those 10 to the final top 5. Cross-encoder accuracy at bi-encoder speed.
+
+### Knowledge graph
+
+Vector search finds chunks that sound similar to the query. But sometimes the relevant context uses different language. A question about "healthcare schemes" might miss a chunk discussing "long-term care insurance" because the wording doesn't overlap enough for cosine similarity. The knowledge graph connects entities through extracted relationships (eg. CPF -> funds -> CareShield Life), so traversal can surface chunks that are topically connected even when semantically distant.
+
+Gemini extracts entities and relationships during ingestion. Current corpus: 2,825 entities, 3,814 relationships across 14 documents.
+
+## Evaluation
+
+The eval framework came first. Every architecture decision (hybrid vs single retriever, chunk size, reranking) was measured against the same 24-question benchmark rather than eyeballed.
+
+### Retrieval ablation
+
+| Configuration | Hit@1 | Hit@3 | Hit@5 | MRR | KW Recall |
+| --- | --- | --- | --- | --- | --- |
+| Dense only | 0.958 | 0.958 | 1.000 | 0.969 | 0.805 |
+| BM25 only | 0.833 | 0.958 | 1.000 | 0.897 | 0.834 |
+| Hybrid (RRF) | 0.917 | 1.000 | 1.000 | 0.951 | 0.857 |
+| Hybrid + Rerank | 0.917 | 1.000 | 1.000 | 0.958 | 0.878 |
+
+Dense wins on Hit@1 but has the worst keyword recall. BM25 catches more keywords but misses semantic matches early. Hybrid + Rerank gets the best of both, with perfect Hit@3/5 and the highest keyword recall.
+
+### Chunk size comparison
+
+| Chunk size | Chunks | Hit@1 | Hit@3 | Hit@5 | MRR | KW Recall |
+| --- | --- | --- | --- | --- | --- | --- |
+| 512 | 512 | 0.917 | 1.000 | 1.000 | 0.958 | 0.878 |
+| 256 | 1,079 | 0.917 | 1.000 | 1.000 | 0.958 | 0.788 |
+
+Hit rates and MRR are identical. Larger chunks score higher on keyword recall because more text per chunk means more keywords co-occurring. Smaller chunks give finer granularity but need more of them to cover the same ground.
+
+### Generation quality (LLM-as-judge)
+
+End-to-end: retrieve with Hybrid + Rerank, generate with Gemini, then score with a separate Gemini judge (1-5 scale, 24 questions):
+
+| Metric | Score |
+| --- | --- |
+| Faithfulness (grounded in retrieved context) | 5.00 |
+| Relevancy (answers the question asked) | 4.50 |
+
+Perfect faithfulness means the system never fabricates beyond what's in the retrieved chunks. Relevancy dips on questions where the corpus only partially covers the topic.
 
 ## Tech stack
 
 - **Backend**: Python 3.11, FastAPI, asyncpg
-- **Vector DB**: PostgreSQL with pgvector (HNSW index)
+- **Vector DB**: PostgreSQL + pgvector (HNSW index)
 - **Sparse search**: BM25 via rank-bm25
 - **Embeddings**: sentence-transformers (all-MiniLM-L6-v2)
 - **Re-ranker**: cross-encoder (ms-marco-MiniLM-L-6-v2)
-- **Knowledge graph**: NetworkX with LLM-based entity extraction
-- **LLM**: Google Gemini (Vertex AI) with SSE streaming
+- **Knowledge graph**: NetworkX + Gemini entity extraction
+- **LLM**: Google Gemini 2.5 Flash (Vertex AI) with SSE streaming
 - **Frontend**: Gradio
-- **Deployment**: Docker Compose
+- **Deployment**: Docker Compose with health checks
 
-## Project structure
-
-```
-src/
-  api/
-    main.py              # FastAPI app, /ingest /query /health endpoints
-    dependencies.py      # DI container, asyncpg pool lifecycle
-  ingestion/
-    loader.py            # PDF/text document loading
-    chunker.py           # Recursive character text splitting
-    embedder.py          # Sentence-transformers embedding
-    indexer.py           # pgvector upsert + BM25 index building
-  retrieval/
-    dense.py             # pgvector cosine similarity search
-    sparse.py            # BM25 keyword search
-    fusion.py            # Reciprocal Rank Fusion (RRF)
-    reranker.py          # Cross-encoder re-ranking
-    hyde.py              # Hypothetical document embeddings (optional)
-    decomposer.py        # Multi-part query decomposition (optional)
-  generation/
-    prompt.py            # Token-budgeted prompt building with citations
-    stream.py            # Gemini streaming with retry logic
-  graph/
-    builder.py           # NetworkX knowledge graph
-    extractor.py         # LLM-based entity/relationship extraction
-    retriever.py         # Graph traversal retrieval
-  config.py              # Dataclass configs (ingestion, retrieval, generation, graph)
-  schemas.py             # Data models (Document, Chunk, RetrievalResult, etc.)
-  exceptions.py          # Domain exception hierarchy
-  logging.py             # Structured logging setup (structlog)
-configs/                 # Hydra YAML configs (swappable retrieval strategies)
-eval/                    # Retrieval evaluation framework (Hit@K, MRR, keyword recall)
-ui/                      # Gradio frontend
-tests/                   # pytest suite
-```
-
-## Setup
+<details>
+<summary>Getting started</summary>
 
 ### Prerequisites
 
@@ -69,7 +103,7 @@ tests/                   # pytest suite
    ```bash
    gcloud auth application-default login
    cp .env.example .env
-   # Edit .env: set GOOGLE_ADC_PATH to your ADC credentials file
+   # Edit .env: set POSTGRES_PASSWORD and GOOGLE_ADC_PATH
    ```
 
 2. Start everything:
@@ -104,66 +138,47 @@ uv run ruff format .
 
 ### API
 
-- `POST /ingest` -- upload and index documents
-- `GET /query?q=your+question` -- SSE stream with answer, citations, and latency
-- `GET /health` -- system health check
+- `POST /ingest` upload and index documents
+- `GET /query?q=your+question` SSE stream with answer, citations, and latency
+- `GET /health` system health check
 
-### Evaluation
+</details>
 
-```bash
-uv run python eval/evaluate.py
+<details>
+<summary>Project structure</summary>
+
+```
+src/
+  api/
+    main.py              # FastAPI app, /ingest /query /health endpoints
+    dependencies.py      # DI container, asyncpg pool lifecycle
+  ingestion/
+    loader.py            # PDF/text document loading
+    chunker.py           # Recursive character text splitting
+    embedder.py          # Sentence-transformers embedding
+    indexer.py           # pgvector upsert + BM25 index building
+  retrieval/
+    dense.py             # pgvector cosine similarity search
+    sparse.py            # BM25 keyword search
+    fusion.py            # Reciprocal Rank Fusion (RRF)
+    reranker.py          # Cross-encoder re-ranking
+    hyde.py              # Hypothetical document embeddings
+    decomposer.py        # Multi-part query decomposition
+  generation/
+    prompt.py            # Token-budgeted prompt building with citations
+    stream.py            # Gemini streaming with retry logic
+  graph/
+    builder.py           # NetworkX knowledge graph
+    extractor.py         # LLM-based entity/relationship extraction
+    retriever.py         # Graph traversal retrieval
+  config.py              # Dataclass configs
+  schemas.py             # Data models (Document, Chunk, RetrievalResult)
+  exceptions.py          # Domain exception hierarchy
+  logging.py             # Structured logging (structlog)
+configs/                 # Hydra YAML configs
+eval/                    # Evaluation framework (Hit@K, MRR, LLM-as-judge)
+ui/                      # Gradio frontend
+tests/                   # pytest suite
 ```
 
-Runs a 4-way retrieval ablation (dense only, BM25 only, hybrid, hybrid + rerank) and prints a metrics table.
-
-### Evaluation results
-
-Retrieval ablation on 14 documents (11 Singapore gov + 3 ML papers), 24 factual questions scored:
-
-| Configuration | Hit@1 | Hit@3 | Hit@5 | MRR | KW Recall |
-| --- | --- | --- | --- | --- | --- |
-| Dense only | 0.958 | 0.958 | 1.000 | 0.969 | 0.805 |
-| BM25 only | 0.833 | 0.958 | 1.000 | 0.897 | 0.834 |
-| Hybrid (RRF) | 0.917 | 1.000 | 1.000 | 0.951 | 0.857 |
-| Hybrid + Rerank | 0.917 | 1.000 | 1.000 | 0.958 | 0.878 |
-
-Key takeaways:
-- Dense retrieval achieves the highest Hit@1 (0.958) but lowest keyword recall (0.805)
-- BM25 captures more keywords but misses semantic matches at rank 1
-- Hybrid search (RRF) achieves perfect Hit@3 and Hit@5, combining both signals
-- Cross-encoder reranking improves MRR and keyword recall over hybrid alone
-
-### Chunk size comparison
-
-Hybrid + Rerank results at two chunk sizes (same corpus, same questions):
-
-| Chunk size | Chunks | Hit@1 | Hit@3 | Hit@5 | MRR | KW Recall |
-| --- | --- | --- | --- | --- | --- | --- |
-| 512 | 512 | 0.917 | 1.000 | 1.000 | 0.958 | 0.878 |
-| 256 | 1,079 | 0.917 | 1.000 | 1.000 | 0.958 | 0.788 |
-
-Both chunk sizes hit identical rates and MRR. The 512-size chunks score higher on keyword recall (0.878 vs 0.788) because each chunk contains more text, so expected keywords are more likely to co-occur in the top results. Smaller chunks give finer-grained retrieval but need more of them to cover the same keywords.
-
-### Generation quality (LLM-as-judge)
-
-End-to-end eval: retrieve (Hybrid + Rerank) then generate an answer with Gemini, then score with a separate Gemini judge on 1-5 scales. 24 answerable questions scored:
-
-| Metric | Avg score |
-| --- | --- |
-| Faithfulness (grounded in context) | 5.00 |
-| Relevancy (addresses the question) | 4.46 |
-
-Perfect faithfulness means the system never fabricates claims beyond retrieved context. Relevancy dips slightly on questions where the retrieved chunks partially address the question.
-
-### Knowledge graph
-
-During ingestion, Gemini extracts entities and relationships from each chunk to build a knowledge graph (NetworkX). The graph augments retrieval by surfacing related context that keyword and vector search might miss.
-
-Current corpus stats (14 documents):
-
-| Metric | Count |
-| --- | --- |
-| Entities | 2,825 |
-| Relationships | 3,814 |
-
-Entity types: concept (1,224), person (582), technique (301), model (185), dataset (111), organization (104), metric (71), other (47)
+</details>
