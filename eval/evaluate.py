@@ -1,5 +1,6 @@
 """Evaluation framework for retrieval and generation metrics."""
 
+import argparse
 import asyncio
 import json
 import os
@@ -269,6 +270,15 @@ def print_ablation_table(results: dict[str, list[dict[str, float | str]]]) -> No
 
 async def main() -> None:
     """Run the full evaluation pipeline."""
+    parser = argparse.ArgumentParser(description="Run retrieval evaluation.")
+    parser.add_argument(
+        "--output",
+        type=str,
+        default="eval/results.json",
+        help="Path for the output JSON results file.",
+    )
+    args = parser.parse_args()
+
     setup_logging(level="INFO")
 
     config = AppConfig(
@@ -288,7 +298,7 @@ async def main() -> None:
     logger.info("Evaluation complete", elapsed_s=round(elapsed, 1))
 
     # Save raw results
-    output_path = Path("eval/results.json")
+    output_path = Path(args.output)
     output_path.write_text(json.dumps(results, indent=2, default=str), encoding="utf-8")
     logger.info("Saved results", path=str(output_path))
 
