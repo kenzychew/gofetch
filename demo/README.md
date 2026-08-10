@@ -70,6 +70,15 @@ Gradio `frontend`. Folding this into one Railway service means:
   backend and `/ingest` triggers embedding + optional graph-extraction LLM
   calls.
 
+- **Vertex AI credentials via env var, not `gcloud login`.** Railway can't
+  run the interactive `gcloud auth application-default login` flow used
+  locally (see step 3 above). Instead, set `GOOGLE_APPLICATION_CREDENTIALS_JSON`
+  on the Railway service to a full service-account key JSON string;
+  `demo/app.py` writes it to a restricted-permission temp file at startup
+  and points Google's standard ADC discovery at it. Leave this var unset
+  for local dev -- `gcloud auth application-default login` keeps working
+  unchanged.
+
 ## Known follow-up (not done here)
 
 Actually wiring this to Railway (provisioning Postgres, running the initial

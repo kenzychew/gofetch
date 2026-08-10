@@ -33,6 +33,15 @@ does a blocking `asyncpg.connect()` during the FastAPI `lifespan` startup
 DB fails the whole process at boot rather than being reported as a
 "degraded" health response.
 
+Vertex AI credentials on Railway can't use the interactive `gcloud auth
+application-default login` flow local dev relies on. `demo/app.py` reads
+`GOOGLE_APPLICATION_CREDENTIALS_JSON` (a service-account key as a JSON
+string) before importing `src.api.main`, writes it to a 0600 temp file, and
+points `GOOGLE_APPLICATION_CREDENTIALS` at it so Google's standard ADC
+discovery picks it up; unset/blank falls through to normal ADC discovery
+unchanged. See `demo/README.md`'s fidelity-gaps section and
+`tests/test_demo/test_app.py`.
+
 ## data/ corpus PDFs
 
 `.gitignore` blanket-excludes `data/*.pdf` (large/generated artifacts by

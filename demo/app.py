@@ -12,8 +12,10 @@ configs/, data/, bm25_index/, and graph_data/ as relative paths:
     uv run uvicorn demo.app:app --host 0.0.0.0 --port 8000
 """
 
+import json
 import os
 import sys
+import tempfile
 import time
 from collections import defaultdict
 from pathlib import Path
@@ -21,6 +23,42 @@ from pathlib import Path
 _REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
+
+
+def _materialize_adc_from_env() -> None:
+    """Write GOOGLE_APPLICATION_CREDENTIALS_JSON to a temp file for ADC.
+
+    Railway can't run the interactive `gcloud auth application-default
+    login` flow, so it supplies the service-account key as a raw JSON env
+    var instead. Google's ADC resolution only reads a file path from
+    GOOGLE_APPLICATION_CREDENTIALS, so this shim bridges the two. Must run
+    before `src.api.main` is imported, since that import's lifespan
+    constructs the Vertex AI client and triggers ADC discovery.
+    """
+    raw = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS_JSON", "").strip()
+    if not raw:
+        return
+
+    try:
+        json.loads(raw)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError(
+            "GOOGLE_APPLICATION_CREDENTIALS_JSON is set but is not valid JSON. "
+            "It must contain a full GCP service-account key JSON blob."
+        ) from exc
+
+    fd, path = tempfile.mkstemp(prefix="gcp-adc-", suffix=".json")
+    try:
+        with os.fdopen(fd, "w") as f:
+            f.write(raw)
+        os.chmod(path, 0o600)
+    except BaseException:
+        os.unlink(path)
+        raise
+    os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = path
+
+
+_materialize_adc_from_env()
 
 from fastapi.responses import JSONResponse  # noqa: E402
 from fastapi.staticfiles import StaticFiles  # noqa: E402
