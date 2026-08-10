@@ -1,0 +1,32 @@
+# Pinned deps for the single-process demo (demo/app.py).
+#
+# Versions match what's already resolved in the repo's uv.lock, so this is
+# the same code path the Docker Compose backend runs -- demo/app.py just
+# imports src.api.main:app directly, it doesn't reimplement any of it.
+#
+# torch is pinned to the CPU-only wheel index: none of the pipeline's local
+# models need a GPU (embedder is all-MiniLM-L6-v2, reranker is
+# cross-encoder/ms-marco-MiniLM-L-6-v2, both ~80MB and fast enough on CPU for
+# demo traffic), and pulling the default CUDA-bundled torch wheel would
+# roughly triple the image size for no benefit here.
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+fastapi==0.135.1
+uvicorn[standard]==0.42.0
+sse-starlette==3.3.3
+google-genai==1.73.0
+asyncpg==0.31.0
+pgvector==0.4.2
+sentence-transformers==5.3.0
+torch==2.9.1+cpu
+rank-bm25==0.2.2
+langchain-text-splitters==1.1.1
+pypdf==6.9.1
+networkx==3.6.1
+hydra-core==1.3.2
+omegaconf==2.3.0
+structlog==25.5.0
+tenacity==9.1.4
+tiktoken==0.12.0
+python-multipart==0.0.22
+httpx==0.28.1
