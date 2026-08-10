@@ -1,25 +1,4 @@
-# Railway service config for the GoFetch demo.
-#
-# IMPORTANT: leave the service's "Root Directory" setting at the repo root
-# (unset), NOT "demo/". demo/app.py imports src.api.main directly and the
-# Dockerfile below COPYs src/, configs/, and data/ from the repo root -- if
-# Railway's build context is scoped to demo/ alone, those paths won't exist
-# in the image. This file just points Railway at demo/Dockerfile; the build
-# context itself stays the full repo checkout.
-#
-# Also required (see demo/README.md and the root README's "Quick start"):
-#   - DATABASE_URL pointing at a pgvector-enabled Postgres with the corpus
-#     already ingested (this repo doesn't stand up Postgres as a second
-#     Railway service here -- see demo/README.md for the documented gap).
-#   - GCP_PROJECT / GCP_REGION and Vertex AI credentials for google-genai.
-#   - Optionally DEMO_RATE_LIMIT_PER_MINUTE (default 10) for /query and /ingest.
-
-[build]
-builder = "DOCKERFILE"
-dockerfilePath = "demo/Dockerfile"
-
-[deploy]
-healthcheckPath = "/health"
-healthcheckTimeout = 60
-restartPolicyType = "ON_FAILURE"
-restartPolicyMaxRetries = 3
+# Railway only reads railway.toml/railway.json at the repo root, never in
+# subdirectories -- see /railway.toml for the config Railway actually uses.
+# This file is kept only for the historical context in its comments; it is
+# not consulted by Railway.
