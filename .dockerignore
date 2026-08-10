@@ -15,6 +15,9 @@ htmlcov
 dist
 build
 data/
+# demo/Dockerfile bakes data/ into the image (Railway has no volume mount
+# for it, unlike docker-compose's ./data:/app/data); re-include it here.
+!data/
 tests/
 temp/
 *.md
