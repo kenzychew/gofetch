@@ -16,6 +16,12 @@ Gradio, demo-only rate limiting). Must run with the repo root as the working
 directory (`uv run uvicorn demo.app:app` from repo root), same constraint as
 `src/api/main.py`'s own relative config paths.
 
+`demo/Dockerfile` needs `data/` baked into the image (Railway has no
+volume mount, unlike `docker-compose.yml`'s `./data:/app/data`), so
+`.dockerignore` carries a `!data/` exception right after its blanket
+`data/` rule. Both `Dockerfile` and `demo/Dockerfile` build from the same
+repo-root context and share that one `.dockerignore`.
+
 ## Maintaining this file
 
 Keep this file for knowledge useful to almost every future agent session in this project.
