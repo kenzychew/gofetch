@@ -192,3 +192,12 @@ section h2 {
 .corpus-group li {
   margin-bottom: 0.25rem;
 }
+
+.corpus-group a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.corpus-group a:hover {
+  text-decoration: underline;
+}

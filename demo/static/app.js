@@ -81,7 +81,12 @@ function renderCorpus(sources) {
     const list = document.createElement("ul");
     for (const entry of entries) {
       const li = document.createElement("li");
-      li.textContent = readableSourceTitle(entry.source);
+      const link = document.createElement("a");
+      link.href = `/corpus-files/${encodeURIComponent(entry.source)}`;
+      link.target = "_blank";
+      link.rel = "noopener";
+      link.textContent = readableSourceTitle(entry.source);
+      li.appendChild(link);
       list.appendChild(li);
     }
     group.appendChild(list);

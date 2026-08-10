@@ -125,5 +125,11 @@ app.add_middleware(
     window_seconds=RATE_LIMIT_WINDOW_SECONDS,
 )
 
+app.mount(
+    "/corpus-files",
+    StaticFiles(directory=_REPO_ROOT / "data"),
+    name="corpus-files",
+)
+
 _STATIC_DIR = Path(__file__).resolve().parent / "static"
 app.mount("/", StaticFiles(directory=_STATIC_DIR, html=True), name="demo-static")

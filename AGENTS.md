@@ -53,7 +53,12 @@ schemes) with filenames rendered as readable titles via a small
 acronym-aware title-case heuristic (short all-consonant-ish tokens like
 `cpf`/`hdb`/`mas` get upper-cased, common short English words don't); see
 `readableSourceTitle()` in that file if the corpus grows past this
-two-group split and the grouping heuristic needs revisiting.
+two-group split and the grouping heuristic needs revisiting. Each entry
+links to its actual file via a second `StaticFiles` mount at
+`/corpus-files` (`demo/app.py`) serving `data/` read-only; that mount must
+be registered before the catch-all `app.mount("/", ...)` for
+`demo/static/`, since Starlette resolves mounts in registration order and
+the catch-all would otherwise shadow it.
 
 ## data/ corpus PDFs
 
