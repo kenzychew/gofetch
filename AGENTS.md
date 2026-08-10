@@ -16,6 +16,11 @@ Gradio, demo-only rate limiting). Must run with the repo root as the working
 directory (`uv run uvicorn demo.app:app` from repo root), same constraint as
 `src/api/main.py`'s own relative config paths.
 
+Railway's build-plan step only reads `railway.toml` at the **repo root**,
+never inside subdirectories, so the actual config lives at `/railway.toml`
+(pointing at `demo/Dockerfile`). `demo/railway.toml` is a stale pointer
+comment only — don't edit it expecting Railway to see it.
+
 ## Maintaining this file
 
 Keep this file for knowledge useful to almost every future agent session in this project.
