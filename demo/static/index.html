@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GoFetch RAG Demo</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <main>
+    <header>
+      <h1>GoFetch</h1>
+      <p class="subtitle">
+        Hybrid search + cross-encoder re-ranking + graph traversal RAG, over Singapore
+        government documents (CPF, HDB, MAS) and ML research papers.
+      </p>
+    </header>
+
+    <form id="query-form">
+      <textarea
+        id="query-input"
+        rows="2"
+        placeholder="What is the attention mechanism?"
+        autofocus
+      ></textarea>
+      <button id="ask-btn" type="submit">Ask</button>
+    </form>
+
+    <p id="status" class="status" hidden></p>
+
+    <section id="answer-section" hidden>
+      <h2>Answer</h2>
+      <div id="answer" class="answer"></div>
+    </section>
+
+    <section id="sources-section" hidden>
+      <h2>Sources</h2>
+      <ol id="sources"></ol>
+    </section>
+
+    <section id="latency-section" hidden>
+      <h2>Latency</h2>
+      <dl id="latency" class="latency"></dl>
+    </section>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>
