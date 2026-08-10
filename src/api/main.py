@@ -245,6 +245,28 @@ class HealthResponse(BaseModel):
     bm25_loaded: bool
 
 
+class SourceEntry(BaseModel):
+    """A distinct document source currently indexed.
+
+    Attributes:
+        source: Source filename as recorded during ingestion.
+        chunk_count: Number of chunks indexed for this source.
+    """
+
+    source: str
+    chunk_count: int
+
+
+class SourcesResponse(BaseModel):
+    """Response model for the sources listing endpoint.
+
+    Attributes:
+        sources: Distinct sources currently indexed, ordered by name.
+    """
+
+    sources: list[SourceEntry]
+
+
 # --- Endpoints ---
 
 
@@ -579,6 +601,44 @@ async def query_rag(
             yield {"event": "error", "data": json.dumps({"error": "Internal error"})}
 
     return EventSourceResponse(event_generator())
+
+
+@app.get("/sources", response_model=SourcesResponse)
+async def list_sources() -> SourcesResponse:
+    """List distinct document sources currently indexed in PostgreSQL.
+
+    Reflects what has actually been ingested, not what's present in
+    data/ on disk -- those can drift if /ingest hasn't been re-run
+    since a corpus change.
+
+    Returns:
+        SourcesResponse with each distinct source and its chunk count,
+        ordered by source name. Empty list if nothing has been ingested.
+
+    Raises:
+        HTTPException: If PostgreSQL is unreachable.
+    """
+    config = get_config()
+
+    try:
+        pool = get_pool()
+        async with pool.acquire() as conn:
+            rows = await conn.fetch(
+                f"SELECT source, COUNT(*) AS chunk_count "  # noqa: S608
+                f"FROM {config.table_name} GROUP BY source ORDER BY source"
+            )
+    except (OSError, TimeoutError) as exc:
+        logger.error("Failed to fetch sources", error=str(exc))
+        raise HTTPException(status_code=500, detail="Database unavailable") from exc
+    except RuntimeError as exc:
+        logger.error("Pool not initialized", error=str(exc))
+        raise HTTPException(status_code=500, detail="Database unavailable") from exc
+
+    return SourcesResponse(
+        sources=[
+            SourceEntry(source=row["source"], chunk_count=row["chunk_count"]) for row in rows
+        ]
+    )
 
 
 @app.get("/health", response_model=HealthResponse)

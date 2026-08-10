@@ -42,6 +42,19 @@ discovery picks it up; unset/blank falls through to normal ADC discovery
 unchanged. See `demo/README.md`'s fidelity-gaps section and
 `tests/test_demo/test_app.py`.
 
+`GET /sources` (`src/api/main.py`) returns the distinct `source` values
+and per-source chunk counts currently in the `chunks` table, reflecting
+what's actually been ingested rather than what's on disk in `data/` (those
+drift apart if `/ingest` hasn't been re-run since a corpus change).
+`demo/static/app.js` fetches it on page load to show visitors what the
+corpus covers before they type a query, grouped by file extension
+(`.pdf` -> ML research papers, everything else -> Singapore government
+schemes) with filenames rendered as readable titles via a small
+acronym-aware title-case heuristic (short all-consonant-ish tokens like
+`cpf`/`hdb`/`mas` get upper-cased, common short English words don't); see
+`readableSourceTitle()` in that file if the corpus grows past this
+two-group split and the grouping heuristic needs revisiting.
+
 ## data/ corpus PDFs
 
 `.gitignore` blanket-excludes `data/*.pdf` (large/generated artifacts by

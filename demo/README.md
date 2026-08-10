@@ -5,10 +5,13 @@ a minimal static frontend (`demo/static/`), meant to run as one deployable
 service instead of the three-container `docker-compose.yml` setup.
 
 `demo/app.py` does not reimplement retrieval or generation -- it imports
-`src.api.main:app` as-is (same `/query`, `/ingest`, `/health` routes, same
-lifespan-managed pipeline startup) and adds two demo-only concerns: a per-IP
-rate limit on `/query` and `/ingest`, and a `StaticFiles` mount serving
-`demo/static/` at `/`.
+`src.api.main:app` as-is (same `/query`, `/ingest`, `/health`, `/sources`
+routes, same lifespan-managed pipeline startup) and adds two demo-only
+concerns: a per-IP rate limit on `/query` and `/ingest`, and a
+`StaticFiles` mount serving `demo/static/` at `/`. The frontend fetches
+`/sources` on load to show visitors what's actually indexed (grouped as
+Singapore government schemes vs. ML research papers) before they type a
+query, since the corpus is deliberately small and mixed.
 
 ## Running locally
 
