@@ -1,6 +1,4 @@
-# STALE: Railway only reads railway.toml/railway.json at the repo root, not
-# in subdirectories. The config Railway actually uses is ../railway.toml.
-# This file is kept only for reference and is not consulted by Railway.
+# Railway service config for the GoFetch demo.
 #
 # IMPORTANT: leave the service's "Root Directory" setting at the repo root
 # (unset), NOT "demo/". demo/app.py imports src.api.main directly and the

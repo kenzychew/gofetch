@@ -22,6 +22,17 @@ volume mount, unlike `docker-compose.yml`'s `./data:/app/data`), so
 `data/` rule. Both `Dockerfile` and `demo/Dockerfile` build from the same
 repo-root context and share that one `.dockerignore`.
 
+Railway only reads `railway.toml`/`railway.json` at the repo root, never in
+a subdirectory, so the live config is the root-level `railway.toml`
+(`dockerfilePath = "demo/Dockerfile"`); `demo/railway.toml` is kept only as
+a stale reference copy, same pattern used by sibling portfolio repos. `/health`
+(`src/api/main.py`) is NOT safe to healthcheck before `DATABASE_URL` is a
+reachable Postgres: `init_dependencies()` in `src/api/dependencies.py`
+does a blocking `asyncpg.connect()` during the FastAPI `lifespan` startup
+(before any endpoint, including `/health`, is servable), so an unreachable
+DB fails the whole process at boot rather than being reported as a
+"degraded" health response.
+
 ## data/ corpus PDFs
 
 `.gitignore` blanket-excludes `data/*.pdf` (large/generated artifacts by
