@@ -22,6 +22,16 @@ volume mount, unlike `docker-compose.yml`'s `./data:/app/data`), so
 `data/` rule. Both `Dockerfile` and `demo/Dockerfile` build from the same
 repo-root context and share that one `.dockerignore`.
 
+## data/ corpus PDFs
+
+`.gitignore` blanket-excludes `data/*.pdf` (large/generated artifacts by
+default) but allowlists specific committed corpus PDFs by name right after
+that rule, same pattern as `.dockerignore`'s `!data/` exception. When adding
+a new PDF to the corpus, add a matching `!data/<filename>.pdf` line, verify
+it has an extractable text layer via `src/ingestion/loader.py`'s
+`load_pdf()` (scanned-image-only PDFs fail silently — `load_documents()`
+just logs a warning and skips them), then commit normally.
+
 ## Maintaining this file
 
 Keep this file for knowledge useful to almost every future agent session in this project.
