@@ -1,5 +1,6 @@
 "use strict";
 
+const corpusGroupsEl = document.getElementById("corpus-groups");
 const form = document.getElementById("query-form");
 const input = document.getElementById("query-input");
 const askBtn = document.getElementById("ask-btn");
@@ -15,6 +16,98 @@ function escapeHtml(text) {
   const div = document.createElement("div");
   div.textContent = text;
   return div.innerHTML;
+}
+
+// Common short English words that should stay in normal title case
+// rather than being treated as acronyms (e.g. "for", "all", "you").
+const SHORT_COMMON_WORDS = new Set([
+  "a", "an", "and", "are", "as", "at", "be", "by", "for", "if", "in",
+  "is", "it", "no", "of", "on", "or", "so", "the", "to", "up", "all", "you",
+]);
+
+function titleCaseWord(word) {
+  if (word.length <= 3 && !SHORT_COMMON_WORDS.has(word)) {
+    return word.toUpperCase();
+  }
+  return word.charAt(0).toUpperCase() + word.slice(1);
+}
+
+function readableSourceTitle(filename) {
+  const stem = filename.replace(/\.[^./]+$/, "");
+  return stem
+    .split(/[-_]+/)
+    .filter(Boolean)
+    .map(titleCaseWord)
+    .join(" ");
+}
+
+function corpusGroupLabel(filename) {
+  return filename.toLowerCase().endsWith(".pdf")
+    ? "ML research papers"
+    : "Singapore government schemes";
+}
+
+const CORPUS_GROUP_ORDER = ["Singapore government schemes", "ML research papers"];
+
+function renderCorpus(sources) {
+  corpusGroupsEl.innerHTML = "";
+
+  if (sources.length === 0) {
+    const p = document.createElement("p");
+    p.className = "corpus-note";
+    p.textContent = "Nothing has been ingested yet.";
+    corpusGroupsEl.appendChild(p);
+    return;
+  }
+
+  const groups = new Map();
+  for (const entry of sources) {
+    const label = corpusGroupLabel(entry.source);
+    if (!groups.has(label)) groups.set(label, []);
+    groups.get(label).push(entry);
+  }
+
+  for (const label of CORPUS_GROUP_ORDER) {
+    const entries = groups.get(label);
+    if (!entries) continue;
+
+    const group = document.createElement("div");
+    group.className = "corpus-group";
+
+    const heading = document.createElement("h3");
+    heading.textContent = label;
+    group.appendChild(heading);
+
+    const list = document.createElement("ul");
+    for (const entry of entries) {
+      const li = document.createElement("li");
+      const link = document.createElement("a");
+      link.href = `/corpus-files/${encodeURIComponent(entry.source)}`;
+      link.target = "_blank";
+      link.rel = "noopener";
+      link.textContent = readableSourceTitle(entry.source);
+      li.appendChild(link);
+      list.appendChild(li);
+    }
+    group.appendChild(list);
+
+    corpusGroupsEl.appendChild(group);
+  }
+}
+
+async function loadCorpus() {
+  try {
+    const response = await fetch("/sources");
+    if (!response.ok) throw new Error(`Request failed (${response.status}).`);
+    const data = await response.json();
+    renderCorpus(data.sources || []);
+  } catch (err) {
+    corpusGroupsEl.innerHTML = "";
+    const p = document.createElement("p");
+    p.className = "corpus-note";
+    p.textContent = "Could not load the indexed source list.";
+    corpusGroupsEl.appendChild(p);
+  }
 }
 
 function renderAnswer(rawText) {
@@ -152,3 +245,5 @@ form.addEventListener("submit", async (event) => {
     askBtn.disabled = false;
   }
 });
+
+loadCorpus();

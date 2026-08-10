@@ -150,3 +150,54 @@ section h2 {
 .latency dd {
   margin: 0;
 }
+
+#corpus-section {
+  margin-top: 1.5rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--panel);
+}
+
+.corpus-note {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+#corpus-groups {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+
+.corpus-group {
+  flex: 1 1 220px;
+  min-width: 0;
+}
+
+.corpus-group h3 {
+  margin: 0 0 0.4rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.corpus-group ul {
+  margin: 0;
+  padding-left: 1.1rem;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.corpus-group li {
+  margin-bottom: 0.25rem;
+}
+
+.corpus-group a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.corpus-group a:hover {
+  text-decoration: underline;
+}
