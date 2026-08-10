@@ -31,6 +31,9 @@ mlruns/
 # Data artifacts
 data/*.pdf
 !data/.gitkeep
+!data/attention-is-all-you-need.pdf
+!data/bert-pretraining.pdf
+!data/retrieval-augmented-generation.pdf
 
 # PostgreSQL data
 pgdata/
