@@ -13,6 +13,12 @@
 #     Railway service here -- see demo/README.md for the documented gap).
 #   - GCP_PROJECT / GCP_REGION and Vertex AI credentials for google-genai.
 #   - Optionally DEMO_RATE_LIMIT_PER_MINUTE (default 10) for /query and /ingest.
+#   - Strongly recommended: BM25_INDEX_DIR pointing at a mounted Railway
+#     volume (e.g. "/data/bm25_index"). Without it, the sparse half of
+#     hybrid search is stored at the relative default bm25_index/, which
+#     lives on the container's ephemeral filesystem and is lost on every
+#     redeploy until /ingest is re-run manually. Unset is safe for local
+#     dev; it just means "no persistence across redeploys" in production.
 
 [build]
 builder = "DOCKERFILE"

@@ -1,7 +1,9 @@
 """Pydantic structured configs validated by Hydra at startup."""
 
+import os
 import re
 from dataclasses import dataclass, field
+from pathlib import Path
 
 from src.exceptions import ConfigError
 
@@ -129,7 +131,10 @@ class AppConfig:
         table_name: Name of the chunks table in PostgreSQL.
         gcp_project: Google Cloud project ID for Vertex AI.
         gcp_region: Google Cloud region for Vertex AI.
-        bm25_index_path: File path for pickled BM25 index.
+        bm25_index_path: File path for pickled BM25 index. The directory
+            component is overridden by the BM25_INDEX_DIR env var when set,
+            so a persistent volume can be mounted there in production; the
+            filename stays as configured.
         graph_data_path: File path for serialized graph data.
         data_dir: Directory containing source documents.
         log_level: Logging level.
@@ -150,7 +155,7 @@ class AppConfig:
     log_level: str = "INFO"
 
     def __post_init__(self) -> None:
-        """Validate config values that are used in SQL identifiers.
+        """Validate config values and apply env var overrides.
 
         Raises:
             ConfigError: If table_name is not a valid SQL identifier.
@@ -159,3 +164,12 @@ class AppConfig:
             raise ConfigError(
                 f"Invalid table_name: '{self.table_name}'. Must match [a-z_][a-z0-9_]{{{{0,62}}}}."
             )
+
+        # Railway containers are ephemeral and wipe the default relative
+        # bm25_index/ path on every redeploy; BM25_INDEX_DIR lets a
+        # persistent volume be mounted elsewhere without touching the
+        # BM25 implementation itself. Unset falls through to the
+        # configured/default relative path for local dev.
+        bm25_dir = os.environ.get("BM25_INDEX_DIR")
+        if bm25_dir:
+            self.bm25_index_path = str(Path(bm25_dir) / Path(self.bm25_index_path).name)

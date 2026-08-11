@@ -138,7 +138,8 @@ uv run ruff format .
 
 ### API
 
-- `POST /ingest` upload and index documents
+- `POST /ingest` upload and index documents; queues the work and returns a job id immediately
+- `GET /ingest/status/{job_id}` poll ingestion stage (chunking, embedding, indexing, graph-extraction, done/failed)
 - `GET /query?q=your+question` SSE stream with answer, citations, and latency
 - `GET /health` system health check
 
