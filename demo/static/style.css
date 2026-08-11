@@ -88,6 +88,56 @@ button:disabled {
   font-size: 0.9rem;
 }
 
+.example-questions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  margin-top: 0.9rem;
+}
+
+.example-group {
+  flex: 1 1 260px;
+  min-width: 0;
+}
+
+.example-group h3 {
+  margin: 0 0 0.15rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.example-note {
+  margin: 0 0 0.5rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.example-chip {
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--fg);
+  font-size: 0.82rem;
+  font-weight: 400;
+  cursor: pointer;
+  text-align: left;
+}
+
+.example-chip:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 section {
   margin-top: 1.75rem;
 }
