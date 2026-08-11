@@ -11,6 +11,7 @@ const sourcesSection = document.getElementById("sources-section");
 const sourcesEl = document.getElementById("sources");
 const latencySection = document.getElementById("latency-section");
 const latencyEl = document.getElementById("latency");
+const exampleChips = document.querySelectorAll(".example-chip");
 
 function escapeHtml(text) {
   const div = document.createElement("div");
@@ -253,5 +254,19 @@ form.addEventListener("submit", async (event) => {
     askBtn.disabled = false;
   }
 });
+
+input.addEventListener("keydown", (event) => {
+  if (event.key !== "Enter" || event.shiftKey) return;
+  event.preventDefault();
+  if (askBtn.disabled) return;
+  form.requestSubmit();
+});
+
+for (const chip of exampleChips) {
+  chip.addEventListener("click", () => {
+    input.value = chip.dataset.question;
+    input.focus();
+  });
+}
 
 loadCorpus();

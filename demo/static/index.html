@@ -33,6 +33,26 @@
       <button id="ask-btn" type="submit">Ask</button>
     </form>
 
+    <div id="example-questions" class="example-questions">
+      <div class="example-group">
+        <h3>In-distribution</h3>
+        <p class="example-note">Answerable from the indexed corpus.</p>
+        <div class="chip-row">
+          <button type="button" class="example-chip" data-question="Can I use my CPF savings to pay for a HDB flat?">Can I use my CPF savings to pay for a HDB flat?</button>
+          <button type="button" class="example-chip" data-question="What is the monthly household income ceiling for a 4-room HDB flat?">Income ceiling for a 4-room HDB flat?</button>
+          <button type="button" class="example-chip" data-question="What is retrieval-augmented generation?">What is retrieval-augmented generation?</button>
+        </div>
+      </div>
+      <div class="example-group">
+        <h3>Out-of-distribution</h3>
+        <p class="example-note">Outside the corpus, the pipeline should abstain rather than guess.</p>
+        <div class="chip-row">
+          <button type="button" class="example-chip" data-question="What's the weather forecast for tomorrow?">What's the weather forecast for tomorrow?</button>
+          <button type="button" class="example-chip" data-question="Who won the most recent World Cup?">Who won the most recent World Cup?</button>
+        </div>
+      </div>
+    </div>
+
     <p id="status" class="status" hidden></p>
 
     <section id="answer-section" hidden>
