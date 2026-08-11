@@ -22,6 +22,17 @@ volume mount, unlike `docker-compose.yml`'s `./data:/app/data`), so
 `data/` rule. Both `Dockerfile` and `demo/Dockerfile` build from the same
 repo-root context and share that one `.dockerignore`.
 
+`meta.confidence` in `/query`'s SSE `metadata` event (`src/api/main.py`,
+top reranked chunk's score) is an unbounded cross-encoder logit, not a
+0-1 probability; negative values are normal and don't mean the answer is
+bad. `demo/static/app.js`'s `renderTechDetails()` (formerly
+`renderLatency()`, renamed once it started covering confidence too) shows
+a qualitative "Low"/"Typical" label derived from the backend's own
+`low_confidence` flag, with the raw score kept alongside for technical
+visitors, inside a `<details>` disclosure (`#latency-section` in
+`index.html`) that stays collapsed by default so it doesn't read as an
+alarm sitting next to a correct answer.
+
 Railway only reads `railway.toml`/`railway.json` at the repo root, never in
 a subdirectory, so the live config is the root-level `railway.toml`
 (`dockerfilePath = "demo/Dockerfile"`); `demo/railway.toml` is kept only as

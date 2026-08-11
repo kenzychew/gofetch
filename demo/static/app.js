@@ -135,7 +135,16 @@ function renderSources(citations) {
   sourcesSection.hidden = citations.length === 0;
 }
 
-function renderLatency(latencyMs, confidence, lowConfidence) {
+// The reranker's confidence score is an unbounded cross-encoder logit, not a
+// 0-1 probability, negative values are normal and don't indicate a bad
+// answer. Lead with the backend's own low_confidence threshold check
+// (src/api/main.py) instead of the raw number, which otherwise reads as an
+// alarm next to a correct answer.
+function confidenceLabel(lowConfidence) {
+  return lowConfidence ? "Low" : "Typical";
+}
+
+function renderTechDetails(latencyMs, confidence, lowConfidence) {
   latencyEl.innerHTML = "";
   const rows = Object.entries(latencyMs);
   for (const [stage, ms] of rows) {
@@ -146,11 +155,9 @@ function renderLatency(latencyMs, confidence, lowConfidence) {
     latencyEl.append(dt, dd);
   }
   const dt = document.createElement("dt");
-  dt.textContent = "confidence";
+  dt.textContent = "retrieval confidence";
   const dd = document.createElement("dd");
-  dd.textContent = lowConfidence
-    ? `${confidence.toFixed(4)} (low)`
-    : confidence.toFixed(4);
+  dd.textContent = `${confidenceLabel(lowConfidence)} (raw score: ${confidence.toFixed(4)})`;
   latencyEl.append(dt, dd);
   latencySection.hidden = rows.length === 0;
 }
@@ -211,7 +218,7 @@ async function streamQuery(query) {
       } else if (eventType === "metadata") {
         const meta = JSON.parse(data);
         renderSources(meta.citations || []);
-        renderLatency(meta.latency_ms || {}, meta.confidence || 0, meta.low_confidence);
+        renderTechDetails(meta.latency_ms || {}, meta.confidence || 0, meta.low_confidence);
       } else if (eventType === "error") {
         const err = JSON.parse(data);
         throw new Error(err.error || "Pipeline error.");
@@ -232,6 +239,7 @@ form.addEventListener("submit", async (event) => {
   answerSection.hidden = false;
   sourcesSection.hidden = true;
   latencySection.hidden = true;
+  latencySection.open = false;
   answerEl.textContent = "";
   sourcesEl.innerHTML = "";
   latencyEl.innerHTML = "";
