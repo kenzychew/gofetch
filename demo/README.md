@@ -35,9 +35,12 @@ cp .env.example .env   # then edit DATABASE_URL / GCP_PROJECT / GCP_REGION
 # 4. Run the demo (must run from repo root -- see demo/app.py docstring)
 uv run uvicorn demo.app:app --reload --port 8000
 
-# 5. Ingest the corpus once (same as today -- this doesn't rebuild indexes,
-#    it just triggers the existing /ingest endpoint against data/)
+# 5. Ingest the corpus once (triggers the existing /ingest endpoint against
+#    data/). /ingest queues the work and returns a job id immediately --
+#    poll /ingest/status/{job_id} for progress; graph extraction is the
+#    slow stage and can take several minutes for the current corpus.
 curl -X POST http://localhost:8000/ingest
+curl http://localhost:8000/ingest/status/<job_id_from_above>
 
 # 6. Open http://localhost:8000
 ```

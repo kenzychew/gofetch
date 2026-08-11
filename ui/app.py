@@ -2,11 +2,14 @@
 
 import json
 import os
+import time
 
 import gradio as gr
 import httpx
 
 BACKEND_URL = os.environ.get("BACKEND_URL", "http://localhost:8000")
+INGEST_POLL_INTERVAL_SECONDS = 2.0
+INGEST_POLL_TIMEOUT_SECONDS = 600.0
 
 
 def _format_metadata(meta: dict) -> tuple[str, str]:  # noqa: C901
@@ -109,8 +112,42 @@ def stream_query(query: str) -> str:
     return result
 
 
+def _poll_ingest_job(client: httpx.Client, job_id: str) -> str:
+    """Poll /ingest/status/{job_id} until the job finishes or times out.
+
+    /ingest now queues the work (chunking, embedding, indexing, and the
+    slow knowledge-graph extraction stage) and returns a job id right
+    away instead of blocking the request, so the client polls status
+    itself rather than waiting on one long-running HTTP call.
+
+    Args:
+        client: httpx client to reuse for status requests.
+        job_id: Job id returned by POST /ingest.
+
+    Returns:
+        Status message reflecting the job's terminal state, or a
+        still-running message if polling times out first.
+    """
+    deadline = time.monotonic() + INGEST_POLL_TIMEOUT_SECONDS
+    while time.monotonic() < deadline:
+        response = client.get(f"{BACKEND_URL}/ingest/status/{job_id}")
+        if response.status_code != 200:
+            return f"Ingestion status check failed: {response.text}"
+
+        data = response.json()
+        stage = data["stage"]
+        if stage == "done":
+            return f"Ingested {data['documents']} documents into {data['chunks']} chunks."
+        if stage == "failed":
+            return f"Ingestion failed: {data['error']}"
+
+        time.sleep(INGEST_POLL_INTERVAL_SECONDS)
+
+    return f"Ingestion still running (job {job_id}, stage: {stage}). Check back later."
+
+
 def upload_files(files: list[str]) -> str:
-    """Upload files to the backend for ingestion.
+    """Upload files to the backend and wait for background ingestion to finish.
 
     Args:
         files: List of file paths from Gradio upload.
@@ -126,13 +163,12 @@ def upload_files(files: list[str]) -> str:
         for file_path in files:
             upload_files_list.append(("files", open(file_path, "rb")))
 
-        with httpx.Client(timeout=300.0) as client:
+        with httpx.Client(timeout=60.0) as client:
             response = client.post(f"{BACKEND_URL}/ingest", files=upload_files_list)
-
-        if response.status_code == 200:
-            data = response.json()
-            return f"Ingested {data['documents']} documents into {data['chunks']} chunks."
-        return f"Ingestion failed: {response.text}"
+            if response.status_code != 202:
+                return f"Ingestion failed: {response.text}"
+            job_id = response.json()["job_id"]
+            return _poll_ingest_job(client, job_id)
 
     except httpx.ConnectError:
         return "Error: Cannot connect to backend. Is the server running?"
@@ -144,19 +180,18 @@ def upload_files(files: list[str]) -> str:
 
 
 def ingest_data_dir() -> str:
-    """Trigger ingestion of all files in the data/ directory.
+    """Trigger ingestion of all files in the data/ directory and wait for it to finish.
 
     Returns:
         Status message.
     """
     try:
-        with httpx.Client(timeout=300.0) as client:
+        with httpx.Client(timeout=60.0) as client:
             response = client.post(f"{BACKEND_URL}/ingest")
-
-        if response.status_code == 200:
-            data = response.json()
-            return f"Ingested {data['documents']} documents into {data['chunks']} chunks."
-        return f"Ingestion failed: {response.text}"
+            if response.status_code != 202:
+                return f"Ingestion failed: {response.text}"
+            job_id = response.json()["job_id"]
+            return _poll_ingest_job(client, job_id)
 
     except httpx.ConnectError:
         return "Error: Cannot connect to backend. Is the server running?"

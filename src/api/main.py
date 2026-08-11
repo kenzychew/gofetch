@@ -3,11 +3,14 @@
 import asyncio
 import json
 import time
+import uuid
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from dataclasses import dataclass
+from enum import StrEnum
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, HTTPException, Query, UploadFile
+from fastapi import BackgroundTasks, Depends, FastAPI, HTTPException, Query, UploadFile
 from google import genai
 from omegaconf import OmegaConf
 from pydantic import BaseModel
@@ -54,7 +57,7 @@ from src.retrieval.fusion import reciprocal_rank_fusion
 from src.retrieval.hyde import generate_hypothetical_document
 from src.retrieval.reranker import CrossEncoderReranker
 from src.retrieval.sparse import SparseRetriever
-from src.schemas import Chunk, CitedSource, RetrievalResult
+from src.schemas import Chunk, CitedSource, Document, RetrievalResult
 
 logger = get_logger(__name__)
 
@@ -217,18 +220,83 @@ app = FastAPI(
 # --- Pydantic request/response models ---
 
 
-class IngestResponse(BaseModel):
-    """Response model for the ingestion endpoint.
+class IngestStage(StrEnum):
+    """Stages an ingestion job passes through, in order.
 
-    Attributes:
-        documents: Number of documents ingested.
-        chunks: Number of chunks created.
-        message: Status message.
+    A later swap to a real task queue (Celery/RQ/SQS) only needs to
+    replace how _run_ingest_job is invoked and where IngestJob state
+    lives -- the stage names, job id, and status endpoint shape stay
+    the same either way.
     """
 
+    QUEUED = "queued"
+    CHUNKING = "chunking"
+    EMBEDDING = "embedding"
+    INDEXING = "indexing"
+    GRAPH_EXTRACTION = "graph-extraction"
+    DONE = "done"
+    FAILED = "failed"
+
+
+@dataclass
+class IngestJob:
+    """Mutable state for one background ingestion job.
+
+    Attributes:
+        job_id: Unique identifier for the job.
+        stage: Current stage of the job.
+        documents: Number of documents found (set once chunking starts).
+        chunks: Number of chunks created (set once chunking completes).
+        message: Human-readable status message.
+        error: Error detail if the job failed, else None.
+    """
+
+    job_id: str
+    stage: IngestStage = IngestStage.QUEUED
+    documents: int = 0
+    chunks: int = 0
+    message: str = ""
+    error: str | None = None
+
+
+# In-memory job store, fine at this scale (single process, small corpora).
+# Keyed by job_id; entries are never evicted, which is an acceptable
+# tradeoff for a demo-scale deployment that restarts on every redeploy.
+_ingest_jobs: dict[str, IngestJob] = {}
+
+
+class IngestJobResponse(BaseModel):
+    """Response model returned immediately when an ingestion job is queued.
+
+    Attributes:
+        job_id: Identifier to poll via /ingest/status/{job_id}.
+        stage: Initial stage (always "queued").
+        message: Human-readable status message.
+    """
+
+    job_id: str
+    stage: str
+    message: str
+
+
+class IngestStatusResponse(BaseModel):
+    """Response model for polling an ingestion job's status.
+
+    Attributes:
+        job_id: The job identifier.
+        stage: Current stage of the job.
+        documents: Number of documents found so far.
+        chunks: Number of chunks created so far.
+        message: Human-readable status message.
+        error: Error detail if the job failed, else None.
+    """
+
+    job_id: str
+    stage: str
     documents: int
     chunks: int
     message: str
+    error: str | None
 
 
 class HealthResponse(BaseModel):
@@ -320,79 +388,134 @@ async def _build_knowledge_graph(
     )
 
 
-@app.post("/ingest", response_model=IngestResponse)
-async def ingest_documents(
-    files: list[UploadFile] | None = None,
-    request_id: str = Depends(get_request_id),
-) -> IngestResponse:
-    """Upload and index documents into the RAG pipeline.
+async def _run_ingest_job(job_id: str, documents: list[Document], config: AppConfig) -> None:
+    """Run the ingestion pipeline for a queued job, updating its stage as it goes.
 
-    Accepts file uploads or ingests all documents from the data/ directory.
-    Runs chunking, embedding, pgvector upsert, and BM25 index building.
+    Runs as a FastAPI background task after the request has already
+    returned the job id. Chunking, embedding, pgvector upsert, and BM25
+    build are fast; graph extraction is the slow, separate final stage
+    that used to block the request.
 
     Args:
-        files: Optional list of uploaded files.
-        request_id: Auto-generated request ID for tracing.
-
-    Returns:
-        IngestResponse with counts and status.
-
-    Raises:
-        HTTPException: If ingestion fails.
+        job_id: The job to run and update.
+        documents: Documents already loaded from disk (validated non-empty
+            before the job was queued).
+        config: Application configuration.
     """
-    config = get_config()
+    job = _ingest_jobs[job_id]
     embedder = get_embedder()
     indexer = get_vector_indexer()
 
     try:
-        data_dir = Path(config.data_dir)
-        if files:
-            await _save_uploaded_files(files, data_dir)
-
-        documents = load_documents(data_dir)
-        if not documents:
-            raise HTTPException(status_code=400, detail="No documents found to ingest")
-
-        # Chunk all documents
+        job.stage = IngestStage.CHUNKING
+        job.documents = len(documents)
         chunker = RecursiveChunker(config.ingestion)
         all_chunks = []
         for doc in documents:
             all_chunks.extend(chunker.chunk(doc))
 
-        # Embed chunks (sync, but fast for small-medium corpora)
+        job.stage = IngestStage.EMBEDDING
         all_chunks = await asyncio.to_thread(embedder.embed_chunks, all_chunks)
 
-        # Upsert to PostgreSQL
+        job.stage = IngestStage.INDEXING
         await indexer.upsert_chunks(all_chunks)
-
-        # Build BM25 index and update sparse retriever
         bm25_indexer = BM25Indexer(config.bm25_index_path)
         bm25 = await asyncio.to_thread(bm25_indexer.build_index, all_chunks)
         set_sparse_retriever(SparseRetriever(bm25, all_chunks))
+        job.chunks = len(all_chunks)
 
         if config.retrieval.use_graph:
+            job.stage = IngestStage.GRAPH_EXTRACTION
             await _build_knowledge_graph(all_chunks, config)
 
+        job.stage = IngestStage.DONE
+        job.message = f"Ingested {job.documents} documents into {job.chunks} chunks"
         logger.info(
-            "Ingestion complete",
-            documents=len(documents),
-            chunks=len(all_chunks),
+            "Ingestion complete", job_id=job_id, documents=job.documents, chunks=job.chunks
         )
 
-        return IngestResponse(
-            documents=len(documents),
-            chunks=len(all_chunks),
-            message=f"Ingested {len(documents)} documents into {len(all_chunks)} chunks",
-        )
-
-    except HTTPException:
-        raise
     except GoFetchError as exc:
-        logger.error("Ingestion failed", error=str(exc))
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        job.stage = IngestStage.FAILED
+        job.error = str(exc)
+        logger.error("Ingestion failed", job_id=job_id, error=str(exc))
     except Exception as exc:
-        logger.error("Unexpected ingestion error", error=str(exc), exc_info=True)
-        raise HTTPException(status_code=500, detail="Internal ingestion error") from exc
+        job.stage = IngestStage.FAILED
+        job.error = "Internal ingestion error"
+        logger.error("Unexpected ingestion error", job_id=job_id, error=str(exc), exc_info=True)
+
+
+@app.post("/ingest", response_model=IngestJobResponse, status_code=202)
+async def ingest_documents(
+    background_tasks: BackgroundTasks,
+    files: list[UploadFile] | None = None,
+    request_id: str = Depends(get_request_id),
+) -> IngestJobResponse:
+    """Upload documents and queue them for background ingestion.
+
+    Accepts file uploads or ingests all documents from the data/ directory.
+    Saves uploads and validates there's something to ingest synchronously,
+    then queues chunking, embedding, pgvector upsert, BM25 build, and
+    (slowest) knowledge-graph extraction as a background job and returns
+    immediately with a job id -- graph extraction alone can take several
+    minutes for the current corpus, well past Railway's edge timeout.
+
+    Args:
+        background_tasks: FastAPI background task runner.
+        files: Optional list of uploaded files.
+        request_id: Auto-generated request ID for tracing.
+
+    Returns:
+        IngestJobResponse with a job id to poll via /ingest/status/{job_id}.
+
+    Raises:
+        HTTPException: If no documents are found to ingest.
+    """
+    config = get_config()
+    data_dir = Path(config.data_dir)
+    if files:
+        await _save_uploaded_files(files, data_dir)
+
+    documents = load_documents(data_dir)
+    if not documents:
+        raise HTTPException(status_code=400, detail="No documents found to ingest")
+
+    job_id = str(uuid.uuid4())[:8]
+    _ingest_jobs[job_id] = IngestJob(job_id=job_id)
+    background_tasks.add_task(_run_ingest_job, job_id, documents, config)
+
+    logger.info("Ingestion job queued", job_id=job_id, documents=len(documents))
+    return IngestJobResponse(
+        job_id=job_id,
+        stage=IngestStage.QUEUED.value,
+        message=f"Queued ingestion of {len(documents)} documents",
+    )
+
+
+@app.get("/ingest/status/{job_id}", response_model=IngestStatusResponse)
+async def ingest_status(job_id: str) -> IngestStatusResponse:
+    """Poll the status of a background ingestion job.
+
+    Args:
+        job_id: Job id returned by POST /ingest.
+
+    Returns:
+        IngestStatusResponse with the job's current stage and any error.
+
+    Raises:
+        HTTPException: If the job id is unknown.
+    """
+    job = _ingest_jobs.get(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Unknown ingestion job id")
+
+    return IngestStatusResponse(
+        job_id=job.job_id,
+        stage=job.stage.value,
+        documents=job.documents,
+        chunks=job.chunks,
+        message=job.message,
+        error=job.error,
+    )
 
 
 async def _run_retrieval(

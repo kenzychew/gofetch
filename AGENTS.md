@@ -53,6 +53,37 @@ discovery picks it up; unset/blank falls through to normal ADC discovery
 unchanged. See `demo/README.md`'s fidelity-gaps section and
 `tests/test_demo/test_app.py`.
 
+`bm25_index_path` (`src/config.py`, `AppConfig.__post_init__`) has its
+directory overridden by the `BM25_INDEX_DIR` env var when set, keeping the
+configured filename; unset falls through to the relative `bm25_index/`
+local-dev default unchanged. This exists because Railway containers are
+ephemeral and wipe that relative path on every redeploy, silently dropping
+the sparse half of hybrid search until a manual re-ingest -- attaching an
+actual Railway volume at the path `BM25_INDEX_DIR` points to is a separate
+infra step, not done by this env var alone. `init_dependencies`
+(`src/api/dependencies.py`) distinguishes, via clear log lines, "no index
+built yet" (pickle file missing -- normal on a fresh volume before the
+first `/ingest`) from "index file present but failed to load" (corrupt
+pickle -- an `IndexingError` from `BM25Indexer.load_index`); neither case
+crashes startup, sparse retrieval just stays unavailable until the next
+successful `/ingest`.
+
+`POST /ingest` (`src/api/main.py`) validates synchronously (saves uploads,
+loads documents, 400s if none found) then queues chunking, embedding,
+Postgres upsert, BM25 build, and knowledge-graph extraction as a
+`BackgroundTasks` job and returns 202 with a job id immediately, instead of
+blocking until graph extraction finishes -- graph extraction is sequential
+per-chunk Gemini calls and took long enough to make Railway's edge 502 the
+request while the service kept serving other traffic fine. Poll
+`GET /ingest/status/{job_id}` for the current `IngestStage`
+(`queued`/`chunking`/`embedding`/`indexing`/`graph-extraction`/`done`/`failed`)
+and any error; job state lives in an in-memory dict (`_ingest_jobs`) keyed
+by job id, fine at this scale but not persisted across restarts. `ui/app.py`
+(the Gradio frontend for the three-container `docker-compose.yml` stack)
+polls this endpoint after posting to `/ingest` rather than waiting on one
+long HTTP call; `demo/static/app.js` has no `/ingest` call at all today, so
+it needed no change here.
+
 `GET /sources` (`src/api/main.py`) returns the distinct `source` values
 and per-source chunk counts currently in the `chunks` table, reflecting
 what's actually been ingested rather than what's on disk in `data/` (those

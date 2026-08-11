@@ -11,6 +11,7 @@ from google import genai
 from pgvector.asyncpg import register_vector
 
 from src.config import AppConfig, PromptConfig
+from src.exceptions import IndexingError
 from src.generation.prompt import PromptBuilder
 from src.graph.builder import KnowledgeGraph
 from src.graph.retriever import GraphRetriever
@@ -142,29 +143,46 @@ async def init_dependencies(config: AppConfig, prompt_config: PromptConfig) -> N
     config.prompts = prompt_config
     _container.prompt_builder = PromptBuilder(prompt_config, config.generation)
 
-    # Load BM25 index if it exists
+    # Load BM25 index if it exists. bm25_path.parent is the BM25_INDEX_DIR
+    # (or its local-dev default) -- on a fresh mounted volume it may not
+    # exist yet, or exist but be empty, both of which just mean "no index
+    # built yet" rather than a failure.
     bm25_path = Path(config.bm25_index_path)
-    if bm25_path.exists():
-        bm25_indexer = BM25Indexer(config.bm25_index_path)
-        bm25, chunks = bm25_indexer.load_index()
-        _container.sparse_retriever = SparseRetriever(bm25, chunks)
-        logger.info("Loaded existing BM25 index")
-
-        # Load graph if it exists and graph retrieval is enabled
-        graph_path = Path(config.graph_data_path)
-        if graph_path.exists() and config.retrieval.use_graph:
-            graph = KnowledgeGraph(config.graph)
-            graph.load(config.graph_data_path)
-            _container.graph_retriever = GraphRetriever(graph, config.graph, chunks)
-            logger.info(
-                "Loaded knowledge graph",
-                nodes=graph.num_nodes,
-                edges=graph.num_edges,
-            )
-        elif config.retrieval.use_graph:
-            logger.warning("Graph retrieval enabled but no graph data found")
+    if not bm25_path.exists():
+        logger.warning(
+            "No BM25 index found, sparse retrieval unavailable until ingestion",
+            index_dir=str(bm25_path.parent),
+            index_dir_exists=bm25_path.parent.exists(),
+        )
     else:
-        logger.warning("No BM25 index found, sparse retrieval unavailable until ingestion")
+        try:
+            bm25_indexer = BM25Indexer(config.bm25_index_path)
+            bm25, chunks = bm25_indexer.load_index()
+        except IndexingError as exc:
+            # Pickle file is present but unreadable/corrupt -- distinct
+            # from "not built yet" above, and must not crash app startup.
+            logger.error(
+                "BM25 index file present but failed to load, treating as build failure",
+                index_path=str(bm25_path),
+                error=str(exc),
+            )
+        else:
+            _container.sparse_retriever = SparseRetriever(bm25, chunks)
+            logger.info("Loaded existing BM25 index")
+
+            # Load graph if it exists and graph retrieval is enabled
+            graph_path = Path(config.graph_data_path)
+            if graph_path.exists() and config.retrieval.use_graph:
+                graph = KnowledgeGraph(config.graph)
+                graph.load(config.graph_data_path)
+                _container.graph_retriever = GraphRetriever(graph, config.graph, chunks)
+                logger.info(
+                    "Loaded knowledge graph",
+                    nodes=graph.num_nodes,
+                    edges=graph.num_edges,
+                )
+            elif config.retrieval.use_graph:
+                logger.warning("Graph retrieval enabled but no graph data found")
 
     logger.info("All dependencies initialized")
 
