@@ -4,6 +4,12 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>GoFetch RAG Demo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet"
+  />
   <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
@@ -16,56 +22,58 @@
       </p>
     </header>
 
-    <section id="corpus-section">
+    <section id="corpus-section" class="panel">
       <h2>What's indexed</h2>
       <div id="corpus-groups">
         <p class="corpus-note">Loading indexed sources...</p>
       </div>
     </section>
 
-    <form id="query-form">
-      <textarea
-        id="query-input"
-        rows="2"
-        placeholder="What is the attention mechanism?"
-        autofocus
-      ></textarea>
-      <button id="ask-btn" type="submit">Ask</button>
-    </form>
+    <section id="ask-section" class="panel">
+      <form id="query-form">
+        <textarea
+          id="query-input"
+          rows="2"
+          placeholder="What is the attention mechanism?"
+          autofocus
+        ></textarea>
+        <button id="ask-btn" type="submit">Ask</button>
+      </form>
 
-    <div id="example-questions" class="example-questions">
-      <div class="example-group">
-        <h3>In-distribution</h3>
-        <p class="example-note">Answerable from the indexed corpus.</p>
-        <div class="chip-row">
-          <button type="button" class="example-chip" data-question="Can I use my CPF savings to pay for a HDB flat?">Can I use my CPF savings to pay for a HDB flat?</button>
-          <button type="button" class="example-chip" data-question="What is the monthly household income ceiling for a 4-room HDB flat?">Income ceiling for a 4-room HDB flat?</button>
-          <button type="button" class="example-chip" data-question="What is retrieval-augmented generation?">What is retrieval-augmented generation?</button>
+      <div id="example-questions" class="example-questions">
+        <div class="example-group">
+          <h3>In-distribution</h3>
+          <p class="example-note">Answerable from the indexed corpus.</p>
+          <div class="chip-row">
+            <button type="button" class="example-chip" data-question="Can I use my CPF savings to pay for a HDB flat?">Can I use my CPF savings to pay for a HDB flat?</button>
+            <button type="button" class="example-chip" data-question="What is the monthly household income ceiling for a 4-room HDB flat?">Income ceiling for a 4-room HDB flat?</button>
+            <button type="button" class="example-chip" data-question="What is retrieval-augmented generation?">What is retrieval-augmented generation?</button>
+          </div>
+        </div>
+        <div class="example-group">
+          <h3>Out-of-distribution</h3>
+          <p class="example-note">Outside the corpus, the pipeline should abstain rather than guess.</p>
+          <div class="chip-row">
+            <button type="button" class="example-chip" data-question="What's the weather forecast for tomorrow?">What's the weather forecast for tomorrow?</button>
+            <button type="button" class="example-chip" data-question="Who won the most recent World Cup?">Who won the most recent World Cup?</button>
+          </div>
         </div>
       </div>
-      <div class="example-group">
-        <h3>Out-of-distribution</h3>
-        <p class="example-note">Outside the corpus, the pipeline should abstain rather than guess.</p>
-        <div class="chip-row">
-          <button type="button" class="example-chip" data-question="What's the weather forecast for tomorrow?">What's the weather forecast for tomorrow?</button>
-          <button type="button" class="example-chip" data-question="Who won the most recent World Cup?">Who won the most recent World Cup?</button>
-        </div>
-      </div>
-    </div>
+    </section>
 
     <p id="status" class="status" hidden></p>
 
-    <section id="answer-section" hidden>
+    <section id="answer-section" class="panel" hidden>
       <h2>Answer</h2>
       <div id="answer" class="answer"></div>
     </section>
 
-    <section id="sources-section" hidden>
+    <section id="sources-section" class="panel" hidden>
       <h2>Sources</h2>
       <ol id="sources"></ol>
     </section>
 
-    <details id="latency-section" hidden>
+    <details id="latency-section" class="panel" hidden>
       <summary>Technical details</summary>
       <dl id="latency" class="latency"></dl>
     </details>
