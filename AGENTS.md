@@ -102,6 +102,17 @@ be registered before the catch-all `app.mount("/", ...)` for
 `demo/static/`, since Starlette resolves mounts in registration order and
 the catch-all would otherwise shadow it.
 
+`demo/static/style.css` and `index.html` use the same warm portfolio
+palette/font tokens (`--color-bg`, `--color-accent`, Fraunces/Public
+Sans/JetBrains Mono) as the GotParking and RocketML demo frontends, no
+`prefers-color-scheme` auto-switching -- see `style.css`'s `:root` for the
+authoritative token values, don't hardcode colors elsewhere. Every page
+section is wrapped in an element with the shared `.panel` class
+(`--color-bg-raised` background, bordered, rounded) so new sections should
+follow that pattern rather than sitting directly on the page background;
+the query form and example-question chips live together inside
+`#ask-section`, one panel, not two.
+
 ## data/ corpus PDFs
 
 `.gitignore` blanket-excludes `data/*.pdf` (large/generated artifacts by
