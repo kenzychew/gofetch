@@ -48,12 +48,12 @@ The eval framework came first. Every architecture decision (hybrid vs single ret
 
 | Configuration | Hit@1 | Hit@3 | Hit@5 | MRR | KW Recall |
 | --- | --- | --- | --- | --- | --- |
-| Dense only | 0.958 | 0.958 | 1.000 | 0.969 | 0.805 |
-| BM25 only | 0.833 | 0.958 | 1.000 | 0.897 | 0.834 |
-| Hybrid (RRF) | 0.917 | 1.000 | 1.000 | 0.951 | 0.857 |
-| Hybrid + Rerank | 0.917 | 1.000 | 1.000 | 0.958 | 0.878 |
+| Dense only | 0.875 | 1.000 | 1.000 | 0.938 | 0.819 |
+| BM25 only | 0.875 | 0.958 | 0.958 | 0.917 | 0.600 |
+| Hybrid (RRF) | 0.875 | 1.000 | 1.000 | 0.938 | 0.728 |
+| Hybrid + Rerank | 0.917 | 1.000 | 1.000 | 0.958 | 0.788 |
 
-Dense wins on Hit@1 but has the worst keyword recall. BM25 catches more keywords but misses semantic matches early. Hybrid + Rerank gets the best of both, with perfect Hit@3/5 and the highest keyword recall.
+Hybrid + Rerank wins Hit@1 outright (0.917 versus 0.875 for the other three) and posts the best MRR. Dense retrieval alone has the highest keyword recall of the four, but only ties BM25 and Hybrid (RRF) on Hit@1. BM25 has the lowest keyword recall despite matching that same Hit@1. Reranking gives up a bit of dense's keyword recall in exchange for the best hit rate and MRR overall.
 
 ### Chunk size comparison
 
