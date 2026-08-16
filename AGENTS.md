@@ -123,6 +123,21 @@ it has an extractable text layer via `src/ingestion/loader.py`'s
 `load_pdf()` (scanned-image-only PDFs fail silently — `load_documents()`
 just logs a warning and skips them), then commit normally.
 
+## eval/ headline numbers
+
+`eval/results.json` is the file `README.md`'s "Retrieval ablation" table is
+built from; it is meant to mirror whichever `eval/results_<chunk_size>.json`
+snapshot matches the shipped chunk size in
+`configs/ingestion/default.yaml` (256 chars as of this writing), not
+whichever eval run was most recently copied over it. It had silently
+drifted to match `results_512.json` instead, so the README table and its
+surrounding prose were describing the wrong config. When the shipped
+chunk size changes, re-copy the matching `results_<size>.json` over
+`eval/results.json` and recompute the table by hand (skip negative
+values per `eval/evaluate.py`'s `_avg_metric`, since -1 marks
+skipped/unanswerable questions) rather than assuming the last table is
+still accurate.
+
 ## Maintaining this file
 
 Keep this file for knowledge useful to almost every future agent session in this project.
