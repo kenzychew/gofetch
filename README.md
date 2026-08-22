@@ -14,6 +14,9 @@ The corpus is a mix of Singapore government documents (CPF, HDB, MAS) and ML res
 
 ```
 Ingest:    PDF/text -> chunk (256 chars) -> embed -> pgvector + BM25 index + knowledge graph
+           (async background job: POST /ingest returns 202 + job id immediately,
+            poll GET /ingest/status/{job_id} for stage: queued -> chunking ->
+            embedding -> indexing -> graph-extraction -> done/failed)
                                                       |            |              |
 Retrieve:  query -> parallel search --------> [dense] [sparse] [graph traversal]
                                                       |            |              |
@@ -38,7 +41,20 @@ So both retrievers grab 20 candidates each, RRF fuses them down to 10, and the c
 
 Vector search finds chunks that sound similar to the query. But sometimes the relevant context uses different language. A question about "healthcare schemes" might miss a chunk discussing "long-term care insurance" because the wording doesn't overlap enough for cosine similarity. The knowledge graph connects entities through extracted relationships (eg. CPF -> funds -> CareShield Life), so traversal can surface chunks that are topically connected even when semantically distant.
 
-Gemini extracts entities and relationships during ingestion. Current corpus: 2,825 entities, 3,814 relationships across 14 documents.
+Gemini extracts entities and relationships during ingestion, and graph retrieval is on by default (`use_graph: true`). But it has never actually fired in any real deployment: the graph only loads at startup if `graph_data/graph.json` already exists on disk (`init_dependencies` in `src/api/dependencies.py`), which requires a completed `/ingest` run against live Vertex AI credentials and a populated Postgres. That has only happened in local testing, never against the hosted demo, so there's no real entity/relationship count to report here.
+
+### Query expansion: HyDE and decomposition (off by default)
+
+`src/retrieval/hyde.py` (Hypothetical Document Embeddings: ask the LLM to draft a plausible answer first, then embed that instead of the raw query) and `src/retrieval/decomposer.py` (splits a multi-part question into sub-queries, retrieves for each, and fuses the results) are both implemented and wired into `_run_retrieval` in `src/api/main.py`. Both are off by default in every shipped config (`use_hyde: false`, `use_decomposition: false` in `src/config.py` and every `configs/retrieval/*.yaml`), and neither has an eval row measuring its effect, so the numbers in the ablation table below don't reflect them. They're real, working code paths, just not shipped or benchmarked behavior.
+
+### Confidence gating and abstention
+
+Every query goes through the same check after fusion and re-ranking, against `confidence_threshold` (0.3 by default, `src/config.py`):
+
+- If fusion returns no chunks at all, generation is skipped entirely: the pipeline streams a fixed refusal ("I don't have enough context to answer this question.") with zero citations.
+- If the top reranked chunk's cross-encoder score is below 0.3, generation still runs but the response carries `low_confidence: true` in the query's SSE metadata, and the prompt gets a low-confidence warning prepended so the model hedges instead of answering as if certain.
+
+The score behind this threshold is a raw cross-encoder logit, not a calibrated probability, so it isn't bounded to 0-1 and negative values are expected.
 
 ## Evaluation
 
@@ -139,7 +155,7 @@ uv run ruff format .
 ### API
 
 - `POST /ingest` upload and index documents; queues the work and returns a job id immediately
-- `GET /ingest/status/{job_id}` poll ingestion stage (chunking, embedding, indexing, graph-extraction, done/failed)
+- `GET /ingest/status/{job_id}` poll ingestion stage (queued, chunking, embedding, indexing, graph-extraction, done/failed)
 - `GET /query?q=your+question` SSE stream with answer, citations, and latency
 - `GET /health` system health check
 
@@ -163,8 +179,8 @@ src/
     sparse.py            # BM25 keyword search
     fusion.py            # Reciprocal Rank Fusion (RRF)
     reranker.py          # Cross-encoder re-ranking
-    hyde.py              # Hypothetical document embeddings
-    decomposer.py        # Multi-part query decomposition
+    hyde.py              # Hypothetical document embeddings (wired in, off by default, unbenchmarked)
+    decomposer.py        # Multi-part query decomposition (wired in, off by default, unbenchmarked)
   generation/
     prompt.py            # Token-budgeted prompt building with citations
     stream.py            # Gemini streaming with retry logic
