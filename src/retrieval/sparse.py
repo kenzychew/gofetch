@@ -31,12 +31,16 @@ class SparseRetriever(BaseRetriever):
         self.bm25 = bm25
         self.chunks = chunks
 
-    async def retrieve(self, query: str, top_k: int) -> list[RetrievalResult]:
+    async def retrieve(
+        self, query: str, top_k: int, query_embedding: list[float] | None = None
+    ) -> list[RetrievalResult]:
         """Retrieve chunks by BM25 keyword relevance.
 
         Args:
             query: The user's search query.
             top_k: Maximum number of results to return.
+            query_embedding: Unused; BM25 is keyword-based, not embedding-based.
+                Present only to satisfy the shared BaseRetriever interface.
 
         Returns:
             List of retrieval results sorted by BM25 score.

@@ -570,11 +570,13 @@ async def _run_retrieval(
     all_ranked_lists: list[list[RetrievalResult]] = []
 
     for sub_query in queries:
-        dense_retriever.set_query_embedding(query_embedding)
-
         tasks: list[asyncio.Task[list[RetrievalResult]]] = []
         tasks.append(
-            asyncio.create_task(dense_retriever.retrieve(sub_query, config.retrieval.dense_top_k))
+            asyncio.create_task(
+                dense_retriever.retrieve(
+                    sub_query, config.retrieval.dense_top_k, query_embedding
+                )
+            )
         )
         if sparse_retriever and config.retrieval.sparse_top_k > 0:
             tasks.append(
