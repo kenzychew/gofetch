@@ -168,8 +168,7 @@ async def evaluate_retrieval(
             ranked_lists: list[list[RetrievalResult]] = []
 
             if flags["dense"]:
-                dense_retriever.set_query_embedding(query_embedding)
-                dense_results = await dense_retriever.retrieve(question, 20)
+                dense_results = await dense_retriever.retrieve(question, 20, query_embedding)
                 ranked_lists.append(dense_results)
 
             if flags["sparse"]:

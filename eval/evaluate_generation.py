@@ -294,8 +294,7 @@ async def evaluate_generation(
 
         # Retrieve: Hybrid + Rerank (production config)
         query_embedding = embedder.embed_query(question)
-        dense_retriever.set_query_embedding(query_embedding)
-        dense_results = await dense_retriever.retrieve(question, 20)
+        dense_results = await dense_retriever.retrieve(question, 20, query_embedding)
         sparse_results = await sparse_retriever.retrieve(question, 20)
         fused = reciprocal_rank_fusion([dense_results, sparse_results], k=60, top_k=10)
         final = await reranker.rerank(question, fused, 5)

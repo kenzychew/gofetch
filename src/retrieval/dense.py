@@ -32,7 +32,6 @@ class DenseRetriever(BaseRetriever):
     Attributes:
         pool: asyncpg connection pool.
         table_name: Name of the chunks table to search.
-        query_embedding: Cached query embedding for the current query.
     """
 
     def __init__(self, pool: asyncpg.Pool, config: AppConfig) -> None:
@@ -44,26 +43,19 @@ class DenseRetriever(BaseRetriever):
         """
         self.pool = pool
         self.table_name = config.table_name
-        self._query_embedding: list[float] | None = None
 
-    def set_query_embedding(self, embedding: list[float]) -> None:
-        """Set the query embedding for the next retrieval call.
-
-        The embedding is generated externally (by the Embedder) and passed
-        here to decouple retrieval from embedding logic.
-
-        Args:
-            embedding: The query's dense vector embedding.
-        """
-        self._query_embedding = embedding
-
-    async def retrieve(self, query: str, top_k: int) -> list[RetrievalResult]:
+    async def retrieve(
+        self, query: str, top_k: int, query_embedding: list[float] | None = None
+    ) -> list[RetrievalResult]:
         """Retrieve chunks by cosine similarity to the query embedding.
 
         Args:
             query: The user's search query (used for logging only;
-                the actual search uses the pre-set embedding).
+                the actual search uses query_embedding).
             top_k: Maximum number of results to return.
+            query_embedding: The query's dense vector embedding. Required;
+                callers must pass it explicitly (there is no shared instance
+                state to fall back on).
 
         Returns:
             List of retrieval results sorted by similarity score.
@@ -71,15 +63,12 @@ class DenseRetriever(BaseRetriever):
         Raises:
             VectorSearchError: If the vector search fails.
         """
-        # Snapshot the embedding to avoid race conditions with concurrent
-        # requests overwriting _query_embedding on this singleton
-        embedding = self._query_embedding
-        if embedding is None:
-            raise VectorSearchError("Query embedding not set. Call set_query_embedding() first.")
+        if query_embedding is None:
+            raise VectorSearchError("query_embedding is required for dense retrieval.")
 
         try:
             sql = SEARCH_SQL.format(table=self.table_name)
-            query_vector = np.array(embedding, dtype=np.float32)
+            query_vector = np.array(query_embedding, dtype=np.float32)
 
             async with self.pool.acquire() as conn:
                 rows = await conn.fetch(sql, query_vector, top_k)
