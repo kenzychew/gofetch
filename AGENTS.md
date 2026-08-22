@@ -138,6 +138,23 @@ values per `eval/evaluate.py`'s `_avg_metric`, since -1 marks
 skipped/unanswerable questions) rather than assuming the last table is
 still accurate.
 
+## Knowledge graph has never fired in a real deployment
+
+`use_graph: true` by default (`src/config.py`), and the retrieval, fusion,
+and extraction code paths are real and wired in. But `init_dependencies`
+(`src/api/dependencies.py`) only loads the graph if `graph_data/graph.json`
+already exists on disk, and that load is itself nested inside the branch
+that only runs when a BM25 index file is also already present -- so the
+graph never loads on a fresh deploy regardless of `use_graph`. Building
+`graph_data/graph.json` requires a completed `/ingest` run against live
+Vertex AI credentials and a populated Postgres, which has only happened in
+local testing; the hosted demo (`fetch.kenzychew.com`) has never had this
+succeed (`/health` there reports `bm25_loaded: false`, confirming neither
+index has ever built there). README.md's knowledge graph section states
+this plainly instead of citing an entity/relationship count -- don't
+reintroduce a specific count without verifying it against a real ingest
+run's output.
+
 ## Maintaining this file
 
 Keep this file for knowledge useful to almost every future agent session in this project.
